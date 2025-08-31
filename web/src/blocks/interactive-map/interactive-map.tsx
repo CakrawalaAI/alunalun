@@ -33,7 +33,7 @@ function MapOverlayManager() {
       >
         Map Ready for Overlays
       </div>,
-      { zIndex: 1000 }
+      { zIndex: 1000 },
     );
 
     // Cleanup on unmount
@@ -54,7 +54,7 @@ export function InteractiveMap() {
     <MapRenderer showControls>
       {/* This component has access to overlay context */}
       <MapOverlayManager />
-      
+
       {/* External features could add their components here */}
       {/* Example: <PlacePins /> from a places feature */}
       {/* Example: <UserAvatars /> from a social feature */}

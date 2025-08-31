@@ -5,7 +5,8 @@ import { useMapControls } from "../hooks/use-map-controls";
 import { useMapInstance } from "../hooks/use-map-instance";
 import { mapContainerStyles } from "../lib/styles";
 import { OverlayProvider } from "../overlays";
-import { MapControls } from "./map-controls";
+import { debounce, useMapStore } from "../stores/use-map-store";
+import { MapUIOverlays } from "./map-ui-overlays";
 
 export interface MapRendererProps {
   showControls?: boolean;
@@ -22,6 +23,7 @@ export function MapRenderer({
   const [containerElement, setContainerElement] =
     useState<HTMLDivElement | null>(null);
   const { map, isLoaded, error } = useMapInstance(containerElement);
+  const { setViewState } = useMapStore();
 
   // Apply map controls and keyboard shortcuts
   useMapControls(map);
@@ -40,6 +42,44 @@ export function MapRenderer({
       logger.error("WebGL is not supported in your browser");
     }
   }, []);
+
+  // Save map state when user interacts with the map
+  useEffect(() => {
+    if (!(map && isLoaded)) {
+      return;
+    }
+
+    // Create debounced save function (500ms delay)
+    const saveMapState = debounce(() => {
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      const bearing = map.getBearing();
+      const pitch = map.getPitch();
+
+      setViewState({
+        center: [center.lng, center.lat],
+        zoom,
+        bearing,
+        pitch,
+      });
+
+      logger.debug("Map state saved", { center, zoom, bearing, pitch });
+    }, 500);
+
+    // Listen to map events
+    map.on("moveend", saveMapState);
+    map.on("zoomend", saveMapState);
+    map.on("rotateend", saveMapState);
+    map.on("pitchend", saveMapState);
+
+    // Cleanup
+    return () => {
+      map.off("moveend", saveMapState);
+      map.off("zoomend", saveMapState);
+      map.off("rotateend", saveMapState);
+      map.off("pitchend", saveMapState);
+    };
+  }, [map, isLoaded, setViewState]);
 
   if (error) {
     return (
@@ -70,7 +110,9 @@ export function MapRenderer({
           style={mapContainerStyles}
           className={className}
         />
-        {isLoaded && map && showControls && <MapControls map={map} />}
+        {isLoaded && map && (
+          <MapUIOverlays map={map} showControls={showControls} />
+        )}
         {!isLoaded && (
           <div
             style={{

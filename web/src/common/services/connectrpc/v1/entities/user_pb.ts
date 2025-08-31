@@ -2,17 +2,21 @@
 // @generated from file v1/entities/user.proto (package api.v1.entities, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file v1/entities/user.proto.
  */
-export const file_v1_entities_user: GenFile = /*@__PURE__*/
-  fileDesc("ChZ2MS9lbnRpdGllcy91c2VyLnByb3RvEg9hcGkudjEuZW50aXRpZXMi5wEKBFVzZXISCgoCaWQYASABKAkSDQoFZW1haWwYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSGQoMZGlzcGxheV9uYW1lGAQgASgJSACIAQESFwoKYXZhdGFyX3VybBgFIAEoCUgBiAEBEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQg8KDV9kaXNwbGF5X25hbWVCDQoLX2F2YXRhcl91cmwirwEKC1VzZXJQcm9maWxlEgoKAmlkGAEgASgJEhAKCHVzZXJuYW1lGAIgASgJEhkKDGRpc3BsYXlfbmFtZRgDIAEoCUgAiAEBEhcKCmF2YXRhcl91cmwYBCABKAlIAYgBARIuCgpjcmVhdGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIPCg1fZGlzcGxheV9uYW1lQg0KC19hdmF0YXJfdXJsIsgBCgxBdXRoUHJvdmlkZXISEAoIcHJvdmlkZXIYASABKAkSGAoQcHJvdmlkZXJfdXNlcl9pZBgCIAEoCRIWCg5lbWFpbF92ZXJpZmllZBgDIAEoCBISCgppc19wcmltYXJ5GAQgASgIEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCPlo8Z2l0aHViLmNvbS9ja3J3bC9hbHVuYWx1bi9hcGkvZ2VuL2FwaS92MS9lbnRpdGllcztlbnRpdGllc3YxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+export const file_v1_entities_user: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "ChZ2MS9lbnRpdGllcy91c2VyLnByb3RvEg9hcGkudjEuZW50aXRpZXMi5wEKBFVzZXISCgoCaWQYASABKAkSDQoFZW1haWwYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSGQoMZGlzcGxheV9uYW1lGAQgASgJSACIAQESFwoKYXZhdGFyX3VybBgFIAEoCUgBiAEBEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQg8KDV9kaXNwbGF5X25hbWVCDQoLX2F2YXRhcl91cmwirwEKC1VzZXJQcm9maWxlEgoKAmlkGAEgASgJEhAKCHVzZXJuYW1lGAIgASgJEhkKDGRpc3BsYXlfbmFtZRgDIAEoCUgAiAEBEhcKCmF2YXRhcl91cmwYBCABKAlIAYgBARIuCgpjcmVhdGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIPCg1fZGlzcGxheV9uYW1lQg0KC19hdmF0YXJfdXJsIsgBCgxBdXRoUHJvdmlkZXISEAoIcHJvdmlkZXIYASABKAkSGAoQcHJvdmlkZXJfdXNlcl9pZBgCIAEoCRIWCg5lbWFpbF92ZXJpZmllZBgDIAEoCBISCgppc19wcmltYXJ5GAQgASgIEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCPlo8Z2l0aHViLmNvbS9ja3J3bC9hbHVuYWx1bi9hcGkvZ2VuL2FwaS92MS9lbnRpdGllcztlbnRpdGllc3YxYgZwcm90bzM",
+    [file_google_protobuf_timestamp],
+  );
 
 /**
  * User represents an authenticated user
@@ -64,7 +68,8 @@ export type User = Message<"api.v1.entities.User"> & {
  * Describes the message api.v1.entities.User.
  * Use `create(UserSchema)` to create a new message.
  */
-export const UserSchema: GenMessage<User> = /*@__PURE__*/
+export const UserSchema: GenMessage<User> =
+  /*@__PURE__*/
   messageDesc(file_v1_entities_user, 0);
 
 /**
@@ -103,7 +108,8 @@ export type UserProfile = Message<"api.v1.entities.UserProfile"> & {
  * Describes the message api.v1.entities.UserProfile.
  * Use `create(UserProfileSchema)` to create a new message.
  */
-export const UserProfileSchema: GenMessage<UserProfile> = /*@__PURE__*/
+export const UserProfileSchema: GenMessage<UserProfile> =
+  /*@__PURE__*/
   messageDesc(file_v1_entities_user, 1);
 
 /**
@@ -149,6 +155,6 @@ export type AuthProvider = Message<"api.v1.entities.AuthProvider"> & {
  * Describes the message api.v1.entities.AuthProvider.
  * Use `create(AuthProviderSchema)` to create a new message.
  */
-export const AuthProviderSchema: GenMessage<AuthProvider> = /*@__PURE__*/
+export const AuthProviderSchema: GenMessage<AuthProvider> =
+  /*@__PURE__*/
   messageDesc(file_v1_entities_user, 2);
-

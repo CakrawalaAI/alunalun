@@ -2,15 +2,18 @@
 // @generated from file v1/common/pagination.proto (package api.v1.common, syntax proto3)
 /* eslint-disable */
 
+import type { Message } from "@bufbuild/protobuf";
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file v1/common/pagination.proto.
  */
-export const file_v1_common_pagination: GenFile = /*@__PURE__*/
-  fileDesc("Chp2MS9jb21tb24vcGFnaW5hdGlvbi5wcm90bxINYXBpLnYxLmNvbW1vbiI8CgtQYWdlUmVxdWVzdBINCgVsaW1pdBgBIAEoBRIOCgZvZmZzZXQYAiABKAUSDgoGY3Vyc29yGAMgASgJImMKDFBhZ2VSZXNwb25zZRINCgV0b3RhbBgBIAEoBRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUSEAoIaGFzX21vcmUYBCABKAgSEwoLbmV4dF9jdXJzb3IYBSABKAlCOlo4Z2l0aHViLmNvbS9ja3J3bC9hbHVuYWx1bi9hcGkvZ2VuL2FwaS92MS9jb21tb247Y29tbW9udjFiBnByb3RvMw");
+export const file_v1_common_pagination: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "Chp2MS9jb21tb24vcGFnaW5hdGlvbi5wcm90bxINYXBpLnYxLmNvbW1vbiI8CgtQYWdlUmVxdWVzdBINCgVsaW1pdBgBIAEoBRIOCgZvZmZzZXQYAiABKAUSDgoGY3Vyc29yGAMgASgJImMKDFBhZ2VSZXNwb25zZRINCgV0b3RhbBgBIAEoBRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUSEAoIaGFzX21vcmUYBCABKAgSEwoLbmV4dF9jdXJzb3IYBSABKAlCOlo4Z2l0aHViLmNvbS9ja3J3bC9hbHVuYWx1bi9hcGkvZ2VuL2FwaS92MS9jb21tb247Y29tbW9udjFiBnByb3RvMw",
+  );
 
 /**
  * PageRequest for paginated queries
@@ -44,7 +47,8 @@ export type PageRequest = Message<"api.v1.common.PageRequest"> & {
  * Describes the message api.v1.common.PageRequest.
  * Use `create(PageRequestSchema)` to create a new message.
  */
-export const PageRequestSchema: GenMessage<PageRequest> = /*@__PURE__*/
+export const PageRequestSchema: GenMessage<PageRequest> =
+  /*@__PURE__*/
   messageDesc(file_v1_common_pagination, 0);
 
 /**
@@ -93,6 +97,6 @@ export type PageResponse = Message<"api.v1.common.PageResponse"> & {
  * Describes the message api.v1.common.PageResponse.
  * Use `create(PageResponseSchema)` to create a new message.
  */
-export const PageResponseSchema: GenMessage<PageResponse> = /*@__PURE__*/
+export const PageResponseSchema: GenMessage<PageResponse> =
+  /*@__PURE__*/
   messageDesc(file_v1_common_pagination, 1);
-

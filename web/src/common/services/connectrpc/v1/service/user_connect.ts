@@ -4,7 +4,18 @@
 // @ts-nocheck
 
 import { Empty, MethodKind } from "@bufbuild/protobuf";
-import { GetAuthProvidersResponse, GetCurrentUserResponse, GetUserRequest, GetUserResponse, LinkAuthProviderRequest, LinkAuthProviderResponse, UnlinkAuthProviderRequest, UnlinkAuthProviderResponse, UpdateProfileRequest, UpdateProfileResponse } from "./user_pb.js";
+import {
+  GetAuthProvidersResponse,
+  GetCurrentUserResponse,
+  GetUserRequest,
+  GetUserResponse,
+  LinkAuthProviderRequest,
+  LinkAuthProviderResponse,
+  UnlinkAuthProviderRequest,
+  UnlinkAuthProviderResponse,
+  UpdateProfileRequest,
+  UpdateProfileResponse,
+} from "./user_pb.js";
 
 /**
  * UserService handles user profile management
@@ -80,6 +91,5 @@ export const UserService = {
       O: UnlinkAuthProviderResponse,
       kind: MethodKind.Unary,
     },
-  }
+  },
 } as const;
-

@@ -3,8 +3,17 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AuthenticateRequest, AuthenticateResponse, CheckUsernameRequest, CheckUsernameResponse, InitAnonymousRequest, InitAnonymousResponse, RefreshTokenRequest, RefreshTokenResponse } from "./auth_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
+import {
+  AuthenticateRequest,
+  AuthenticateResponse,
+  CheckUsernameRequest,
+  CheckUsernameResponse,
+  InitAnonymousRequest,
+  InitAnonymousResponse,
+  RefreshTokenRequest,
+  RefreshTokenResponse,
+} from "./auth_pb.js";
 
 /**
  * AuthService handles authentication flows
@@ -58,6 +67,5 @@ export const AuthService = {
       O: RefreshTokenResponse,
       kind: MethodKind.Unary,
     },
-  }
+  },
 } as const;
-

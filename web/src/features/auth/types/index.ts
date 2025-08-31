@@ -1,5 +1,5 @@
 export interface AuthState {
-  type: 'none' | 'anonymous' | 'authenticated';
+  type: "none" | "anonymous" | "authenticated";
   token: string | null;
   sessionId: string | null;
   username: string | null;

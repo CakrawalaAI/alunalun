@@ -1,13 +1,15 @@
-// OpenFreeMap style URLs - these are complete style definitions, not tile URLs
+// Re-export from new config structure for backward compatibility
+import { getStyleUrl, MAP_STYLES } from "@/features/map/config/styles";
+
+// OpenFreeMap style URLs - now imported from config/styles.ts
 export const OPENFREEMAP_STYLES = {
-  liberty: "https://tiles.openfreemap.org/styles/liberty",
-  bright: "https://tiles.openfreemap.org/styles/bright",
-  positron: "https://tiles.openfreemap.org/styles/positron",
+  liberty: MAP_STYLES.liberty.url,
+  bright: MAP_STYLES.bright.url,
+  positron: MAP_STYLES.positron.url,
 } as const;
 
-// Use OpenFreeMap's liberty style directly
-// This is a complete style.json that includes sources, layers, etc.
-export const MAP_STYLE = OPENFREEMAP_STYLES.liberty;
+// Default style - now uses configuration
+export const MAP_STYLE = getStyleUrl("liberty");
 
 // Legacy tile providers (kept for reference)
 export const TILE_SOURCES = {

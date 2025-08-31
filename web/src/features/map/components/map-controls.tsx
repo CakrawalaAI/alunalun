@@ -1,6 +1,9 @@
 import type { Map } from "maplibre-gl";
 import { MAP_CONFIG, WORLD_CITIES } from "../constants/map-config";
+import { CompassButton } from "./compass-button";
 import { LocateButton } from "./locate-button";
+import { PitchControl } from "./pitch-control";
+import { ZoomControls } from "./zoom-controls";
 
 interface MapControlsProps {
   map: Map;
@@ -20,9 +23,10 @@ export function MapControls({
   onLocationFound,
 }: MapControlsProps) {
   const handleHomeClick = () => {
+    // Fly to DPR Jakarta with configured zoom level
     map.flyTo({
       center: MAP_CONFIG.initialView.center,
-      zoom: MAP_CONFIG.initialView.zoom,
+      zoom: MAP_CONFIG.initialView.zoom, // Now uses zoom 15
       duration: 1500,
       essential: true,
     });
@@ -45,11 +49,11 @@ export function MapControls({
         position: "absolute",
         top: "60px",
         right: "10px",
-        zIndex: 10,
         backgroundColor: "white",
         borderRadius: "8px",
         padding: "0.5rem",
         boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        pointerEvents: "auto",
       }}
     >
       <button
@@ -72,8 +76,20 @@ export function MapControls({
         📍 Jakarta
       </button>
 
-      <div style={{ marginBottom: "0.5rem" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "0.5rem",
+          marginBottom: "0.5rem",
+        }}
+      >
         <LocateButton map={map} onLocationFound={onLocationFound} />
+        <CompassButton map={map} />
+        <PitchControl map={map} />
+      </div>
+
+      <div style={{ marginBottom: "0.5rem" }}>
+        <ZoomControls map={map} showZoomLevel={true} />
       </div>
 
       {showCityJumps && (

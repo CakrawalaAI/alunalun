@@ -22,7 +22,7 @@ export class LocationLayer {
    */
   private initializeLayers(): void {
     // Source should already exist with data from updateLocation
-    
+
     // Add accuracy circle layer (rendered first, below the dot)
     if (!this.map.getLayer(this.circleLayerId)) {
       this.map.addLayer({
@@ -32,37 +32,18 @@ export class LocationLayer {
         filter: ["==", "$type", "Point"],
         paint: {
           "circle-radius": [
-            "case",
-            ["has", "accuracy"],
-            [
-              "interpolate",
-              ["exponential", 2],
-              ["zoom"],
-              0,
-              0,
-              20,
-              [
-                "*",
-                ["coalesce", ["get", "accuracy"], 50],
-                [
-                  "/",
-                  1,
-                  [
-                    "*",
-                    [
-                      "cos",
-                      [
-                        "*",
-                        ["coalesce", ["get", "latitude"], 0],
-                        ["/", Math.PI, 180],
-                      ],
-                    ],
-                    ["/", 156543.03392, ["^", 2, ["zoom"]]],
-                  ],
-                ],
-              ],
-            ],
-            0, // Default radius when no accuracy data
+            "interpolate",
+            ["exponential", 2],
+            ["zoom"],
+            // At zoom 10, show smaller radius
+            10,
+            ["*", ["coalesce", ["get", "accuracy"], 50], 0.5],
+            // At zoom 16, show actual accuracy radius
+            16,
+            ["coalesce", ["get", "accuracy"], 50],
+            // At zoom 20, show larger radius
+            20,
+            ["*", ["coalesce", ["get", "accuracy"], 50], 2],
           ],
           "circle-color": "rgba(66, 133, 244, 0.15)",
           "circle-stroke-color": "rgba(66, 133, 244, 0.3)",

@@ -1,23 +1,23 @@
 // Components
-export { UsernameModal, AuthPrompt, GoogleAuthButton } from './components';
+export { AuthPrompt, GoogleAuthButton, UsernameModal } from "./components";
 
 // Hooks
-export { 
-  useAuth, 
-  useCheckUsername, 
-  useInitAnonymous, 
-  useAuthenticate 
-} from './hooks';
+export {
+  useAuth,
+  useAuthenticate,
+  useCheckUsername,
+  useInitAnonymous,
+} from "./hooks";
 
 // Store
-export { useAuthStore } from './store/auth-store';
+export { useAuthStore } from "./store/auth-store";
 
 // Types
-export type { 
-  AuthState, 
-  User, 
-  CheckUsernameResponse, 
-  InitAnonymousResponse, 
-  AuthenticateResponse, 
-  RefreshTokenResponse 
-} from './types';
+export type {
+  AuthenticateResponse,
+  AuthState,
+  CheckUsernameResponse,
+  InitAnonymousResponse,
+  RefreshTokenResponse,
+  User,
+} from "./types";

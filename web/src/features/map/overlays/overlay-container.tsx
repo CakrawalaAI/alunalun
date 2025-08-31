@@ -21,7 +21,7 @@ export function OverlayContainer({ children }: OverlayContainerProps) {
         right: 0,
         bottom: 0,
         pointerEvents: "none",
-        zIndex: 10,
+        zIndex: 1000,
       }}
     >
       {children}

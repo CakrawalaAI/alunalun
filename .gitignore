@@ -1,0 +1,4 @@
+worktrees/
+.envrc
+data/
+.playwright-mcp/

@@ -1,9 +1,12 @@
-import { createPromiseClient } from "@connectrpc/connect";
+import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
-import { AuthService } from "@/common/services/connectrpc/v1/service/auth_connect";
-import { UserService } from "@/common/services/connectrpc/v1/service/user_connect";
+import { AuthService } from "@/common/connectrpc/v1/service/auth_pb";
+import { UserService } from "@/common/connectrpc/v1/service/user_pb";
+import {
+  canRefreshToken,
+  isTokenExpiringSoon,
+} from "@/features/auth/lib/token-utils";
 import { useAuthStore } from "@/features/auth/store/auth-store";
-import { isTokenExpiringSoon, canRefreshToken } from "@/features/auth/lib/token-utils";
 
 // Create transport with auth interceptor
 const createAuthTransport = () => {
@@ -16,12 +19,12 @@ const createAuthTransport = () => {
         Object.entries(headers).forEach(([key, value]) => {
           req.header.set(key, value);
         });
-        
+
         // Auto-refresh logic for authenticated tokens
         const authType = useAuthStore.getState().type;
         const token = useAuthStore.getState().token;
-        
-        if (authType === 'authenticated' && token) {
+
+        if (authType === "authenticated" && token) {
           // Check if token is expiring soon and can be refreshed
           if (isTokenExpiringSoon(token) && canRefreshToken(token)) {
             try {
@@ -29,22 +32,24 @@ const createAuthTransport = () => {
               const response = await authClient.refreshToken({
                 expiredToken: token,
               });
-              
+
               // Update the store with new token
               const user = useAuthStore.getState().user;
               if (user) {
-                useAuthStore.getState().setAuthenticatedAuth(response.token, user);
+                useAuthStore
+                  .getState()
+                  .setAuthenticatedAuth(response.token, user);
                 // Update the request header with new token
-                req.header.set('Authorization', `Bearer ${response.token}`);
+                req.header.set("Authorization", `Bearer ${response.token}`);
               }
             } catch (error) {
-              console.error('Failed to refresh token:', error);
+              console.error("Failed to refresh token:", error);
               // Token refresh failed, let the request continue with expired token
               // The server will return 401 and we'll handle it in the UI
             }
           }
         }
-        
+
         return next(req);
       },
     ],
@@ -62,13 +67,13 @@ const getTransport = () => {
 };
 
 // Export client instances
-export const authClient = createPromiseClient(AuthService, getTransport());
-export const userClient = createPromiseClient(UserService, getTransport());
+export let authClient = createClient(AuthService, getTransport());
+export let userClient = createClient(UserService, getTransport());
 
 // Helper to recreate clients if needed (e.g., after environment change)
 export const reinitializeClients = () => {
   transport = null;
   const newTransport = getTransport();
-  authClient = createPromiseClient(AuthService, newTransport);
-  userClient = createPromiseClient(UserService, newTransport);
+  authClient = createClient(AuthService, newTransport);
+  userClient = createClient(UserService, newTransport);
 };

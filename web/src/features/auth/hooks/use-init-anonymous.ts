@@ -5,7 +5,7 @@ import type { InitAnonymousResponse } from "@/features/auth/types";
 
 export const useInitAnonymous = () => {
   const setAnonymousAuth = useAuthStore((state) => state.setAnonymousAuth);
-  
+
   return useMutation({
     mutationFn: async (username: string): Promise<InitAnonymousResponse> => {
       const response = await authClient.initAnonymous({ username });
@@ -20,7 +20,7 @@ export const useInitAnonymous = () => {
       setAnonymousAuth(data.token, data.sessionId, data.username);
     },
     onError: (error) => {
-      console.error('Failed to initialize anonymous session:', error);
+      console.error("Failed to initialize anonymous session:", error);
     },
   });
 };

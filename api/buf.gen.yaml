@@ -15,14 +15,9 @@ plugins:
     opt:
       - paths=source_relative
   
-  # TypeScript/JavaScript generation for frontend
-  - remote: buf.build/bufbuild/es
-    out: ../web/src/common/services/connectrpc
-    opt:
-      - target=ts
-  
-  # ConnectRPC TypeScript generation
-  - remote: buf.build/connectrpc/es
-    out: ../web/src/common/services/connectrpc
+  # TypeScript/JavaScript generation for frontend (Connect v2)
+  # This generates both the messages AND service descriptors
+  - remote: buf.build/bufbuild/es:v2.7.0
+    out: ../web/src/common/connectrpc
     opt:
       - target=ts

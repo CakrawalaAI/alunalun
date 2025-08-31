@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface User {
   id: string;
@@ -12,14 +12,18 @@ export interface User {
 }
 
 type AuthState = {
-  type: 'none' | 'anonymous' | 'authenticated';
+  type: "none" | "anonymous" | "authenticated";
   token: string | null;
   sessionId: string | null;
   username: string | null;
   user: User | null;
-  
+
   // Actions
-  setAnonymousAuth: (token: string, sessionId: string, username: string) => void;
+  setAnonymousAuth: (
+    token: string,
+    sessionId: string,
+    username: string,
+  ) => void;
   setAuthenticatedAuth: (token: string, user: User) => void;
   clearAuth: () => void;
   getAuthHeaders: () => Record<string, string>;
@@ -30,71 +34,71 @@ type AuthState = {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      type: 'none',
+      type: "none",
       token: null,
       sessionId: null,
       username: null,
       user: null,
-      
+
       setAnonymousAuth: (token, sessionId, username) => {
         set({
-          type: 'anonymous',
+          type: "anonymous",
           token,
           sessionId,
           username,
           user: null,
         });
       },
-      
+
       setAuthenticatedAuth: (token, user) => {
         // Clear anonymous data
-        localStorage.removeItem('anonymous_token');
+        localStorage.removeItem("anonymous_token");
         set({
-          type: 'authenticated',
+          type: "authenticated",
           token,
           sessionId: null,
           username: user.username,
           user,
         });
       },
-      
+
       clearAuth: () => {
         set({
-          type: 'none',
+          type: "none",
           token: null,
           sessionId: null,
           username: null,
           user: null,
         });
       },
-      
+
       getAuthHeaders: () => {
         const state = get();
         if (state.token) {
           return { Authorization: `Bearer ${state.token}` };
         }
-        return {};
+        return {} as Record<string, string>;
       },
-      
+
       isAuthenticated: () => {
         const state = get();
-        return state.type === 'authenticated';
+        return state.type === "authenticated";
       },
-      
+
       isAnonymous: () => {
         const state = get();
-        return state.type === 'anonymous';
+        return state.type === "anonymous";
       },
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       partialize: (state) => ({
         // Only persist anonymous token and session info
         type: state.type,
-        token: state.type === 'anonymous' ? state.token : null,
-        sessionId: state.type === 'anonymous' ? state.sessionId : null,
-        username: state.type === 'anonymous' ? state.username : null,
+        token: state.type === "anonymous" ? state.token : null,
+        sessionId: state.type === "anonymous" ? state.sessionId : null,
+        username: state.type === "anonymous" ? state.username : null,
       }),
-    }
-  )
+    },
+  ),
 );
