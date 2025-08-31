@@ -1,0 +1,28 @@
+# Buf code generation configuration for ConnectRPC
+# Run with: buf generate
+
+version: v2
+plugins:
+  # Go generation for backend
+  - remote: buf.build/protocolbuffers/go
+    out: internal/protocgen
+    opt:
+      - paths=source_relative
+  
+  # ConnectRPC Go generation
+  - remote: buf.build/connectrpc/go
+    out: internal/protocgen
+    opt:
+      - paths=source_relative
+  
+  # TypeScript/JavaScript generation for frontend
+  - remote: buf.build/bufbuild/es
+    out: ../web/src/common/services/connectrpc
+    opt:
+      - target=ts
+  
+  # ConnectRPC TypeScript generation
+  - remote: buf.build/connectrpc/es
+    out: ../web/src/common/services/connectrpc
+    opt:
+      - target=ts

@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package api.v1.service;
+
+import "v1/entities/user.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+
+option go_package = "github.com/ckrwl/alunalun/api/gen/api/v1/service;servicev1";
+
+// UserService handles user profile management
+service UserService {
+  // Get current user profile
+  rpc GetCurrentUser(google.protobuf.Empty) returns (GetCurrentUserResponse);
+  
+  // Get user by username
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  
+  // Update current user profile
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  
+  // Get linked auth providers
+  rpc GetAuthProviders(google.protobuf.Empty) returns (GetAuthProvidersResponse);
+  
+  // Link new auth provider
+  rpc LinkAuthProvider(LinkAuthProviderRequest) returns (LinkAuthProviderResponse);
+  
+  // Unlink auth provider
+  rpc UnlinkAuthProvider(UnlinkAuthProviderRequest) returns (UnlinkAuthProviderResponse);
+}
+
+// GetCurrentUserResponse returns current user
+message GetCurrentUserResponse {
+  api.v1.entities.User user = 1;
+}
+
+// GetUserRequest by username
+message GetUserRequest {
+  string username = 1;
+}
+
+// GetUserResponse returns public profile
+message GetUserResponse {
+  api.v1.entities.UserProfile profile = 1;
+}
+
+// UpdateProfileRequest updates user profile
+message UpdateProfileRequest {
+  google.protobuf.FieldMask update_mask = 1;
+  optional string display_name = 2;
+  optional string avatar_url = 3;
+}
+
+// UpdateProfileResponse returns updated user
+message UpdateProfileResponse {
+  api.v1.entities.User user = 1;
+}
+
+// GetAuthProvidersResponse returns linked providers
+message GetAuthProvidersResponse {
+  repeated api.v1.entities.AuthProvider providers = 1;
+}
+
+// LinkAuthProviderRequest links new provider
+message LinkAuthProviderRequest {
+  string provider = 1;     // "google", "github", etc
+  string credential = 2;   // OAuth token
+}
+
+// LinkAuthProviderResponse returns updated providers
+message LinkAuthProviderResponse {
+  repeated api.v1.entities.AuthProvider providers = 1;
+}
+
+// UnlinkAuthProviderRequest unlinks provider
+message UnlinkAuthProviderRequest {
+  string provider = 1;
+}
+
+// UnlinkAuthProviderResponse returns remaining providers
+message UnlinkAuthProviderResponse {
+  repeated api.v1.entities.AuthProvider providers = 1;
+}

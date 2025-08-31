@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package api.v1.service;
+
+import "v1/entities/user.proto";
+import "google/protobuf/field_mask.proto";
+
+option go_package = "github.com/ckrwl/alunalun/api/gen/api/v1/service;servicev1";
+
+// AuthService handles authentication flows
+service AuthService {
+  // Check if username is available
+  rpc CheckUsername(CheckUsernameRequest) returns (CheckUsernameResponse);
+  
+  // Initialize anonymous session (generates session_id + token)
+  rpc InitAnonymous(InitAnonymousRequest) returns (InitAnonymousResponse);
+  
+  // Authenticate with provider (Google, magic link, etc)
+  rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+  
+  // Refresh authenticated tokens (anonymous tokens never expire)
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+}
+
+// CheckUsernameRequest checks availability
+message CheckUsernameRequest {
+  string username = 1;
+}
+
+// CheckUsernameResponse returns availability
+message CheckUsernameResponse {
+  bool available = 1;
+  string message = 2; // Optional reason if not available
+}
+
+// InitAnonymousRequest creates anonymous session
+message InitAnonymousRequest {
+  string username = 1;
+}
+
+// InitAnonymousResponse returns anonymous token
+message InitAnonymousResponse {
+  string token = 1;       // JWT with no expiration
+  string session_id = 2;  // Server-generated UUID
+  string username = 3;    // Confirmed username
+}
+
+// AuthenticateRequest for provider-based auth
+message AuthenticateRequest {
+  string provider = 1;              // "google", "magic_link", etc
+  string credential = 2;            // ID token, magic token, etc
+  optional string session_id = 3;  // For migration from anonymous
+}
+
+// AuthenticateResponse returns auth token
+message AuthenticateResponse {
+  string token = 1;                // JWT with 1hr expiration
+  api.v1.entities.User user = 2;
+  bool session_migrated = 3;       // If session_id was provided and migrated
+}
+
+// RefreshTokenRequest refreshes expired JWT
+message RefreshTokenRequest {
+  string expired_token = 1; // The expired JWT to refresh
+}
+
+// RefreshTokenResponse returns new token
+message RefreshTokenResponse {
+  string token = 1; // New JWT with 1hr expiration
+}

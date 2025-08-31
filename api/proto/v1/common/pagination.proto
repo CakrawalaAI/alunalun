@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package api.v1.common;
+
+option go_package = "github.com/ckrwl/alunalun/api/gen/api/v1/common;commonv1";
+
+// PageRequest for paginated queries
+message PageRequest {
+  int32 limit = 1;   // Max items per page
+  int32 offset = 2;  // Number of items to skip
+  string cursor = 3; // Alternative cursor-based pagination
+}
+
+// PageResponse with pagination metadata
+message PageResponse {
+  int32 total = 1;      // Total number of items
+  int32 limit = 2;      // Items per page
+  int32 offset = 3;     // Current offset
+  bool has_more = 4;    // Whether more pages exist
+  string next_cursor = 5; // Cursor for next page
+}
