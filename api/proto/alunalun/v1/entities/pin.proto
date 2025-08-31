@@ -1,0 +1,316 @@
+syntax = "proto3";
+
+package alunalun.v1.entities;
+
+import "google/protobuf/timestamp.proto";
+import "alunalun/v1/common/timestamp.proto";
+
+option go_package = "github.com/ckrwl/alunalun/api/gen/go/alunalun/v1/entities;entities";
+
+// Pin represents a location-based pin/post in the system
+message Pin {
+  // Unique identifier for the pin
+  string id = 1;
+  
+  // User who created the pin
+  string user_id = 2; // required
+  
+  // Pin content
+  PinContent content = 3;
+  
+  // Location information
+  Location location = 4; // required
+  
+  // Pin visibility and access control
+  PinVisibility visibility = 5;
+  
+  // Pin metadata
+  PinMetadata metadata = 6;
+  
+  // Engagement statistics
+  PinStats stats = 7;
+  
+  // Pin status
+  PinStatus status = 8;
+  
+  // Categories/tags for the pin
+  repeated string tags = 9; // max 10 tags
+  
+  // Pin type/category
+  PinType type = 10;
+  
+  // Audit information
+  alunalun.v1.common.AuditInfo audit_info = 11;
+  
+  // Reserved for future use
+  reserved 12 to 20;
+}
+
+// PinContent contains the actual content of the pin
+message PinContent {
+  // Title of the pin
+  string title = 1; // required, max 100 chars
+  
+  // Description/body text
+  string description = 2; // max 1000 chars
+  
+  // Media attachments
+  repeated Media media = 3; // max 10 items
+  
+  // External link
+  string link_url = 4;
+  
+  // Link preview (auto-generated from link_url)
+  LinkPreview link_preview = 5;
+}
+
+// Media represents a media attachment
+message Media {
+  // Media type
+  enum MediaType {
+    MEDIA_TYPE_UNSPECIFIED = 0;
+    MEDIA_TYPE_IMAGE = 1;
+    MEDIA_TYPE_VIDEO = 2;
+    MEDIA_TYPE_AUDIO = 3;
+    MEDIA_TYPE_DOCUMENT = 4;
+  }
+  MediaType type = 1;
+  
+  // Media URL (CDN URL)
+  string url = 2;
+  
+  // Thumbnail URL (for videos/documents)
+  string thumbnail_url = 3;
+  
+  // Media metadata
+  MediaMetadata metadata = 4;
+  
+  // Caption for this media
+  string caption = 5;
+  
+  // Alt text for accessibility
+  string alt_text = 6;
+}
+
+// MediaMetadata contains media file metadata
+message MediaMetadata {
+  // File size in bytes
+  int64 size_bytes = 1;
+  
+  // MIME type
+  string mime_type = 2;
+  
+  // Width in pixels (for images/videos)
+  int32 width = 3;
+  
+  // Height in pixels (for images/videos)
+  int32 height = 4;
+  
+  // Duration in seconds (for videos/audio)
+  float duration_seconds = 5;
+  
+  // Original filename
+  string filename = 6;
+}
+
+// LinkPreview contains preview information for external links
+message LinkPreview {
+  // Page title
+  string title = 1;
+  
+  // Page description
+  string description = 2;
+  
+  // Preview image URL
+  string image_url = 3;
+  
+  // Site name
+  string site_name = 4;
+  
+  // Favicon URL
+  string favicon_url = 5;
+}
+
+// Location represents geographic location
+message Location {
+  // Latitude in decimal degrees
+  double latitude = 1; // required, range: -90 to 90
+  
+  // Longitude in decimal degrees
+  double longitude = 2; // required, range: -180 to 180
+  
+  // Altitude in meters (optional)
+  double altitude = 3;
+  
+  // Accuracy radius in meters
+  float accuracy_meters = 4;
+  
+  // Human-readable address
+  Address address = 5;
+  
+  // Place information (if pin is at a specific venue)
+  Place place = 6;
+}
+
+// Address represents a human-readable address
+message Address {
+  // Street address
+  string street = 1;
+  
+  // City name
+  string city = 2;
+  
+  // State/province
+  string state = 3;
+  
+  // Country name
+  string country = 4;
+  
+  // Postal/ZIP code
+  string postal_code = 5;
+  
+  // Full formatted address string
+  string formatted = 6;
+}
+
+// Place represents a specific venue or point of interest
+message Place {
+  // Place ID (from external provider like Google Places)
+  string id = 1;
+  
+  // Place name
+  string name = 2;
+  
+  // Place category
+  string category = 3;
+  
+  // External provider
+  string provider = 4; // e.g., "google", "foursquare"
+}
+
+// PinVisibility controls who can see the pin
+message PinVisibility {
+  // Visibility level
+  enum Level {
+    LEVEL_UNSPECIFIED = 0;
+    LEVEL_PUBLIC = 1;       // Anyone can see
+    LEVEL_FOLLOWERS = 2;    // Only followers can see
+    LEVEL_FRIENDS = 3;      // Only friends can see
+    LEVEL_PRIVATE = 4;      // Only creator can see
+    LEVEL_CUSTOM = 5;       // Custom list of users
+  }
+  Level level = 1;
+  
+  // For LEVEL_CUSTOM: specific user IDs who can see
+  repeated string allowed_users = 2;
+  
+  // Geographic restrictions
+  GeoRestriction geo_restriction = 3;
+  
+  // Time-based visibility
+  TimeRestriction time_restriction = 4;
+}
+
+// GeoRestriction limits pin visibility by geography
+message GeoRestriction {
+  // Maximum distance from pin location (in meters)
+  // Pin is only visible to users within this radius
+  float max_distance_meters = 1;
+  
+  // Specific regions where pin is visible
+  repeated string allowed_regions = 2; // ISO 3166-1 alpha-2 codes
+  
+  // Specific regions where pin is blocked
+  repeated string blocked_regions = 3;
+}
+
+// TimeRestriction controls time-based visibility
+message TimeRestriction {
+  // Pin becomes visible at this time
+  google.protobuf.Timestamp visible_from = 1;
+  
+  // Pin becomes hidden at this time
+  google.protobuf.Timestamp visible_until = 2;
+  
+  // Pin auto-deletes at this time
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+// PinMetadata contains additional pin metadata
+message PinMetadata {
+  // Source of the pin
+  enum Source {
+    SOURCE_UNSPECIFIED = 0;
+    SOURCE_APP = 1;         // Created via app
+    SOURCE_WEB = 2;         // Created via web
+    SOURCE_API = 3;         // Created via API
+    SOURCE_IMPORT = 4;      // Imported from another service
+  }
+  Source source = 1;
+  
+  // Client information
+  string client_id = 2;
+  string client_version = 3;
+  
+  // Device information
+  string device_id = 4;
+  string device_type = 5; // e.g., "ios", "android", "web"
+  
+  // IP address (for security/audit)
+  string ip_address = 6;
+  
+  // User agent string
+  string user_agent = 7;
+}
+
+// PinStats contains engagement statistics
+message PinStats {
+  // View count
+  int32 view_count = 1;
+  
+  // Like count
+  int32 like_count = 2;
+  
+  // Comment count
+  int32 comment_count = 3;
+  
+  // Share count
+  int32 share_count = 4;
+  
+  // Save/bookmark count
+  int32 save_count = 5;
+  
+  // Report count (for moderation)
+  int32 report_count = 6;
+  
+  // Engagement rate (calculated field)
+  float engagement_rate = 7;
+  
+  // Last interaction timestamp
+  google.protobuf.Timestamp last_interaction_at = 8;
+}
+
+// PinStatus represents the status of a pin
+enum PinStatus {
+  PIN_STATUS_UNSPECIFIED = 0;
+  PIN_STATUS_DRAFT = 1;        // Not yet published
+  PIN_STATUS_PUBLISHED = 2;    // Active and visible
+  PIN_STATUS_HIDDEN = 3;       // Hidden by user
+  PIN_STATUS_FLAGGED = 4;      // Flagged for review
+  PIN_STATUS_REMOVED = 5;      // Removed by moderation
+  PIN_STATUS_DELETED = 6;      // Soft deleted
+  PIN_STATUS_ARCHIVED = 7;     // Archived by user
+}
+
+// PinType categorizes pins
+enum PinType {
+  PIN_TYPE_UNSPECIFIED = 0;
+  PIN_TYPE_GENERAL = 1;        // General pin
+  PIN_TYPE_EVENT = 2;          // Event announcement
+  PIN_TYPE_ALERT = 3;          // Alert/warning
+  PIN_TYPE_REVIEW = 4;         // Place review
+  PIN_TYPE_QUESTION = 5;       // Question/help request
+  PIN_TYPE_OFFER = 6;          // Offer/deal
+  PIN_TYPE_STORY = 7;          // Story/experience
+  PIN_TYPE_CHECKIN = 8;        // Location check-in
+}

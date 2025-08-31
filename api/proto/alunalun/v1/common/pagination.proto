@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package alunalun.v1.common;
+
+// Go package path for generated code
+option go_package = "github.com/ckrwl/alunalun/api/gen/go/alunalun/v1/common;common";
+
+// PaginationRequest is used for paginating list requests
+// This follows the cursor-based pagination pattern which is more efficient
+// than offset-based pagination for large datasets
+message PaginationRequest {
+  // Maximum number of items to return
+  // Backend should enforce a sensible maximum (e.g., 100)
+  int32 page_size = 1; // required - validate: 1-100
+  
+  // Cursor/token for the next page
+  // Empty string for the first page
+  // Use PaginationResponse.next_page_token for subsequent pages
+  string page_token = 2;
+  
+  // Optional: Sort order
+  // Example values: "created_at", "-created_at" (descending), "name"
+  string order_by = 3;
+}
+
+// PaginationResponse provides pagination metadata in list responses
+message PaginationResponse {
+  // Token to retrieve the next page
+  // Empty string if there are no more pages
+  string next_page_token = 1;
+  
+  // Token to retrieve the previous page
+  // Empty string if this is the first page
+  string prev_page_token = 2;
+  
+  // Total number of items available
+  // May be expensive to calculate - consider making it optional
+  // Set to 0 if not calculated
+  int32 total_items = 3;
+  
+  // Number of items returned in this page
+  int32 page_size = 4;
+  
+  // Indicates if there are more pages available
+  bool has_more = 5;
+}
+
+// Alternative: Offset-based pagination (simpler but less efficient)
+message OffsetPaginationRequest {
+  // Number of items to skip
+  int32 offset = 1; // validate: >= 0
+  
+  // Maximum number of items to return
+  int32 limit = 2; // required - validate: 1-100
+  
+  // Sort field and direction
+  string order_by = 3;
+}
+
+message OffsetPaginationResponse {
+  // Total number of items available
+  int32 total = 1;
+  
+  // Current offset
+  int32 offset = 2;
+  
+  // Number of items returned
+  int32 limit = 3;
+}

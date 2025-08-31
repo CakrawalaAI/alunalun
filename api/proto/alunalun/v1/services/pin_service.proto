@@ -1,0 +1,1100 @@
+syntax = "proto3";
+
+package alunalun.v1.services;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "alunalun/v1/entities/pin.proto";
+import "alunalun/v1/entities/user.proto";
+import "alunalun/v1/common/pagination.proto";
+import "alunalun/v1/common/error.proto";
+
+option go_package = "github.com/ckrwl/alunalun/api/gen/go/alunalun/v1/services;services";
+
+// PinService handles location-based pins/posts
+service PinService {
+  // CreatePin creates a new pin
+  // Returns: Created pin
+  // Errors: INVALID_ARGUMENT, PERMISSION_DENIED
+  rpc CreatePin(CreatePinRequest) returns (CreatePinResponse);
+  
+  // GetPin retrieves a pin by ID
+  // Returns: Pin details
+  // Errors: NOT_FOUND, PERMISSION_DENIED (private pins)
+  rpc GetPin(GetPinRequest) returns (GetPinResponse);
+  
+  // UpdatePin updates an existing pin
+  // Returns: Updated pin
+  // Errors: NOT_FOUND, PERMISSION_DENIED
+  rpc UpdatePin(UpdatePinRequest) returns (UpdatePinResponse);
+  
+  // DeletePin deletes a pin
+  // Returns: Empty on success
+  // Errors: NOT_FOUND, PERMISSION_DENIED
+  rpc DeletePin(DeletePinRequest) returns (google.protobuf.Empty);
+  
+  // Pin discovery and search
+  
+  // ListPins lists pins with filters
+  // Returns: Paginated list of pins
+  rpc ListPins(ListPinsRequest) returns (ListPinsResponse);
+  
+  // SearchPins searches pins by text
+  // Returns: Search results
+  rpc SearchPins(SearchPinsRequest) returns (SearchPinsResponse);
+  
+  // GetNearbyPins gets pins near a location
+  // Returns: Pins within radius
+  rpc GetNearbyPins(GetNearbyPinsRequest) returns (GetNearbyPinsResponse);
+  
+  // GetPinsInArea gets pins in a bounding box
+  // Returns: Pins within area
+  rpc GetPinsInArea(GetPinsInAreaRequest) returns (GetPinsInAreaResponse);
+  
+  // GetUserPins gets pins created by a user
+  // Returns: User's pins
+  rpc GetUserPins(GetUserPinsRequest) returns (GetUserPinsResponse);
+  
+  // GetFeedPins gets pins for user's feed
+  // Returns: Personalized feed
+  rpc GetFeedPins(GetFeedPinsRequest) returns (GetFeedPinsResponse);
+  
+  // GetTrendingPins gets trending pins
+  // Returns: Popular pins
+  rpc GetTrendingPins(GetTrendingPinsRequest) returns (GetTrendingPinsResponse);
+  
+  // Pin interactions
+  
+  // LikePin likes a pin
+  // Returns: Updated like status
+  // Errors: NOT_FOUND, ALREADY_EXISTS
+  rpc LikePin(LikePinRequest) returns (LikePinResponse);
+  
+  // UnlikePin removes like from pin
+  // Returns: Empty on success
+  // Errors: NOT_FOUND
+  rpc UnlikePin(UnlikePinRequest) returns (google.protobuf.Empty);
+  
+  // CommentOnPin adds a comment to pin
+  // Returns: Created comment
+  // Errors: NOT_FOUND, PERMISSION_DENIED
+  rpc CommentOnPin(CommentOnPinRequest) returns (CommentOnPinResponse);
+  
+  // GetPinComments gets comments for a pin
+  // Returns: Paginated comments
+  rpc GetPinComments(GetPinCommentsRequest) returns (GetPinCommentsResponse);
+  
+  // DeleteComment deletes a comment
+  // Returns: Empty on success
+  // Errors: NOT_FOUND, PERMISSION_DENIED
+  rpc DeleteComment(DeleteCommentRequest) returns (google.protobuf.Empty);
+  
+  // SharePin shares a pin
+  // Returns: Share details
+  // Errors: NOT_FOUND, PERMISSION_DENIED
+  rpc SharePin(SharePinRequest) returns (SharePinResponse);
+  
+  // SavePin saves/bookmarks a pin
+  // Returns: Save status
+  // Errors: NOT_FOUND, ALREADY_EXISTS
+  rpc SavePin(SavePinRequest) returns (SavePinResponse);
+  
+  // UnsavePin removes saved pin
+  // Returns: Empty on success
+  // Errors: NOT_FOUND
+  rpc UnsavePin(UnsavePinRequest) returns (google.protobuf.Empty);
+  
+  // GetSavedPins gets user's saved pins
+  // Returns: Saved pins
+  rpc GetSavedPins(GetSavedPinsRequest) returns (GetSavedPinsResponse);
+  
+  // ReportPin reports a pin for moderation
+  // Returns: Report status
+  // Errors: NOT_FOUND, ALREADY_EXISTS
+  rpc ReportPin(ReportPinRequest) returns (ReportPinResponse);
+  
+  // Pin analytics
+  
+  // GetPinStats gets statistics for a pin
+  // Returns: Pin statistics
+  // Errors: NOT_FOUND, PERMISSION_DENIED
+  rpc GetPinStats(GetPinStatsRequest) returns (GetPinStatsResponse);
+  
+  // RecordPinView records a view event
+  // Returns: Empty on success
+  rpc RecordPinView(RecordPinViewRequest) returns (google.protobuf.Empty);
+  
+  // Bulk operations
+  
+  // BatchGetPins gets multiple pins by IDs
+  // Returns: Map of pins
+  rpc BatchGetPins(BatchGetPinsRequest) returns (BatchGetPinsResponse);
+  
+  // BatchDeletePins deletes multiple pins
+  // Returns: Deletion results
+  // Errors: PERMISSION_DENIED
+  rpc BatchDeletePins(BatchDeletePinsRequest) returns (BatchDeletePinsResponse);
+}
+
+// CreatePinRequest to create a new pin
+message CreatePinRequest {
+  // Pin content
+  alunalun.v1.entities.PinContent content = 1; // required
+  
+  // Location (required for location-based pins)
+  alunalun.v1.entities.Location location = 2; // required
+  
+  // Visibility settings
+  alunalun.v1.entities.PinVisibility visibility = 3;
+  
+  // Pin type
+  alunalun.v1.entities.PinType type = 4;
+  
+  // Tags/categories
+  repeated string tags = 5; // max 10
+  
+  // Schedule for future posting
+  google.protobuf.Timestamp scheduled_at = 6;
+  
+  // Client metadata
+  alunalun.v1.entities.PinMetadata metadata = 7;
+}
+
+message CreatePinResponse {
+  // Created pin
+  alunalun.v1.entities.Pin pin = 1;
+  
+  // Whether pin is scheduled
+  bool is_scheduled = 2;
+}
+
+// GetPinRequest to retrieve a pin
+message GetPinRequest {
+  // Pin ID
+  string pin_id = 1; // required
+  
+  // Include interaction status with current user
+  bool include_interactions = 2;
+  
+  // Fields to include
+  google.protobuf.FieldMask field_mask = 3;
+}
+
+message GetPinResponse {
+  // Pin details
+  alunalun.v1.entities.Pin pin = 1;
+  
+  // Creator details
+  alunalun.v1.entities.User creator = 2;
+  
+  // Current user's interactions
+  PinInteractions interactions = 3;
+  
+  // Whether user can edit/delete
+  PinPermissions permissions = 4;
+}
+
+// PinInteractions tracks user's interactions with pin
+message PinInteractions {
+  // Whether user has liked
+  bool liked = 1;
+  
+  // Whether user has saved
+  bool saved = 2;
+  
+  // Whether user has shared
+  bool shared = 3;
+  
+  // Whether user has reported
+  bool reported = 4;
+  
+  // User's comments count
+  int32 user_comments_count = 5;
+}
+
+// PinPermissions for current user
+message PinPermissions {
+  // Can edit the pin
+  bool can_edit = 1;
+  
+  // Can delete the pin
+  bool can_delete = 2;
+  
+  // Can comment on the pin
+  bool can_comment = 3;
+  
+  // Can share the pin
+  bool can_share = 4;
+  
+  // Can report the pin
+  bool can_report = 5;
+}
+
+// UpdatePinRequest to update a pin
+message UpdatePinRequest {
+  // Pin ID to update
+  string pin_id = 1; // required
+  
+  // Updated pin data
+  alunalun.v1.entities.Pin pin = 2;
+  
+  // Update mask (which fields to update)
+  google.protobuf.FieldMask update_mask = 3; // required
+}
+
+message UpdatePinResponse {
+  // Updated pin
+  alunalun.v1.entities.Pin pin = 1;
+}
+
+// DeletePinRequest
+message DeletePinRequest {
+  // Pin ID to delete
+  string pin_id = 1; // required
+  
+  // Reason for deletion (for audit)
+  string reason = 2;
+  
+  // Hard delete (admin only)
+  bool hard_delete = 3;
+}
+
+// ListPinsRequest with filters
+message ListPinsRequest {
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 1;
+  
+  // Filter options
+  PinFilter filter = 2;
+  
+  // Include interactions for current user
+  bool include_interactions = 3;
+  
+  // Fields to include
+  google.protobuf.FieldMask field_mask = 4;
+}
+
+message ListPinsResponse {
+  // List of pins
+  repeated alunalun.v1.entities.Pin pins = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+}
+
+// PinFilter for filtering pins
+message PinFilter {
+  // Filter by status
+  repeated alunalun.v1.entities.PinStatus status = 1;
+  
+  // Filter by type
+  repeated alunalun.v1.entities.PinType types = 2;
+  
+  // Filter by creator
+  repeated string user_ids = 3;
+  
+  // Filter by tags
+  repeated string tags = 4;
+  
+  // Filter by date range
+  google.protobuf.Timestamp created_after = 5;
+  google.protobuf.Timestamp created_before = 6;
+  
+  // Filter by visibility
+  alunalun.v1.entities.PinVisibility.Level min_visibility = 7;
+  
+  // Exclude user's own pins
+  bool exclude_own = 8;
+  
+  // Only pins from followed users
+  bool following_only = 9;
+}
+
+// SearchPinsRequest for text search
+message SearchPinsRequest {
+  // Search query
+  string query = 1; // required, min 2 chars
+  
+  // Search in specific fields
+  repeated PinSearchField search_fields = 2;
+  
+  // Location context for relevance
+  alunalun.v1.entities.Location location = 3;
+  
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 4;
+  
+  // Filter options
+  PinFilter filter = 5;
+}
+
+// PinSearchField specifies where to search
+enum PinSearchField {
+  PIN_SEARCH_FIELD_UNSPECIFIED = 0;
+  PIN_SEARCH_FIELD_TITLE = 1;
+  PIN_SEARCH_FIELD_DESCRIPTION = 2;
+  PIN_SEARCH_FIELD_TAGS = 3;
+  PIN_SEARCH_FIELD_LOCATION = 4;
+  PIN_SEARCH_FIELD_USER = 5;
+}
+
+message SearchPinsResponse {
+  // Search results
+  repeated PinSearchResult results = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+  
+  // Total matches
+  int32 total_matches = 3;
+}
+
+// PinSearchResult with relevance
+message PinSearchResult {
+  // Pin details
+  alunalun.v1.entities.Pin pin = 1;
+  
+  // Relevance score (0-1)
+  float score = 2;
+  
+  // Distance from search location (meters)
+  float distance_meters = 3;
+  
+  // Matched fields
+  repeated string matched_fields = 4;
+  
+  // Highlighted snippets
+  map<string, string> highlights = 5;
+}
+
+// GetNearbyPinsRequest for location-based discovery
+message GetNearbyPinsRequest {
+  // Center location
+  alunalun.v1.entities.Location location = 1; // required
+  
+  // Radius in meters
+  float radius_meters = 2; // required, max 50000 (50km)
+  
+  // Maximum number of results
+  int32 limit = 3; // max 100
+  
+  // Filter options
+  PinFilter filter = 4;
+  
+  // Sort by distance or relevance
+  enum SortBy {
+    SORT_BY_UNSPECIFIED = 0;
+    SORT_BY_DISTANCE = 1;    // Nearest first
+    SORT_BY_RELEVANCE = 2;   // Most relevant first
+    SORT_BY_RECENT = 3;      // Most recent first
+    SORT_BY_POPULAR = 4;     // Most popular first
+  }
+  SortBy sort_by = 5;
+}
+
+message GetNearbyPinsResponse {
+  // Nearby pins
+  repeated NearbyPin pins = 1;
+  
+  // Total found (may be more than returned)
+  int32 total_found = 2;
+  
+  // Search radius actually used
+  float search_radius_meters = 3;
+}
+
+// NearbyPin with distance
+message NearbyPin {
+  // Pin details
+  alunalun.v1.entities.Pin pin = 1;
+  
+  // Distance from search center
+  float distance_meters = 2;
+  
+  // Bearing from search center (degrees)
+  float bearing_degrees = 3;
+  
+  // Creator info
+  alunalun.v1.entities.User creator = 4;
+}
+
+// GetPinsInAreaRequest for bounding box search
+message GetPinsInAreaRequest {
+  // Bounding box corners
+  BoundingBox bounds = 1; // required
+  
+  // Maximum number of results
+  int32 limit = 2; // max 500
+  
+  // Filter options
+  PinFilter filter = 3;
+  
+  // Clustering options
+  ClusteringOptions clustering = 4;
+}
+
+// BoundingBox defines an area
+message BoundingBox {
+  // Southwest corner
+  alunalun.v1.entities.Location southwest = 1; // required
+  
+  // Northeast corner
+  alunalun.v1.entities.Location northeast = 2; // required
+}
+
+// ClusteringOptions for map display
+message ClusteringOptions {
+  // Enable clustering
+  bool enabled = 1;
+  
+  // Minimum zoom level for clustering
+  int32 min_zoom = 2;
+  
+  // Maximum zoom level for clustering
+  int32 max_zoom = 3;
+  
+  // Cluster radius in pixels
+  int32 radius_pixels = 4;
+}
+
+message GetPinsInAreaResponse {
+  // Pins or clusters
+  oneof result {
+    // Individual pins (when not clustering)
+    PinsResult pins = 1;
+    
+    // Clustered pins (when clustering enabled)
+    ClustersResult clusters = 2;
+  }
+}
+
+// PinsResult for individual pins
+message PinsResult {
+  // Pins in area
+  repeated alunalun.v1.entities.Pin pins = 1;
+  
+  // Total count
+  int32 total_count = 2;
+}
+
+// ClustersResult for clustered pins
+message ClustersResult {
+  // Pin clusters
+  repeated PinCluster clusters = 1;
+  
+  // Individual pins (not clustered)
+  repeated alunalun.v1.entities.Pin pins = 2;
+  
+  // Total pins count
+  int32 total_pins_count = 3;
+}
+
+// PinCluster represents grouped pins
+message PinCluster {
+  // Cluster center
+  alunalun.v1.entities.Location center = 1;
+  
+  // Number of pins in cluster
+  int32 pin_count = 2;
+  
+  // Cluster ID
+  string cluster_id = 3;
+  
+  // Bounding box of clustered pins
+  BoundingBox bounds = 4;
+  
+  // Sample pins from cluster
+  repeated alunalun.v1.entities.Pin sample_pins = 5;
+}
+
+// GetUserPinsRequest
+message GetUserPinsRequest {
+  // User ID (or current user if empty)
+  string user_id = 1;
+  
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 2;
+  
+  // Filter options
+  PinFilter filter = 3;
+  
+  // Include drafts (for own pins)
+  bool include_drafts = 4;
+}
+
+message GetUserPinsResponse {
+  // User's pins
+  repeated alunalun.v1.entities.Pin pins = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+  
+  // Statistics
+  UserPinStats stats = 3;
+}
+
+// UserPinStats
+message UserPinStats {
+  // Total pins count
+  int32 total_pins = 1;
+  
+  // Published pins
+  int32 published_pins = 2;
+  
+  // Draft pins
+  int32 draft_pins = 3;
+  
+  // Total views
+  int32 total_views = 4;
+  
+  // Total likes
+  int32 total_likes = 5;
+}
+
+// GetFeedPinsRequest for personalized feed
+message GetFeedPinsRequest {
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 1;
+  
+  // Feed algorithm
+  enum FeedAlgorithm {
+    FEED_ALGORITHM_UNSPECIFIED = 0;
+    FEED_ALGORITHM_CHRONOLOGICAL = 1;  // Time-based
+    FEED_ALGORITHM_RELEVANCE = 2;      // ML-based relevance
+    FEED_ALGORITHM_POPULAR = 3;        // Trending/popular
+    FEED_ALGORITHM_NEARBY = 4;         // Location-based
+    FEED_ALGORITHM_MIXED = 5;          // Combination
+  }
+  FeedAlgorithm algorithm = 2;
+  
+  // User's current location (for nearby)
+  alunalun.v1.entities.Location location = 3;
+  
+  // Include pins from unfollowed users
+  bool include_discover = 4;
+}
+
+message GetFeedPinsResponse {
+  // Feed items
+  repeated FeedItem items = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+  
+  // Feed session ID (for analytics)
+  string session_id = 3;
+}
+
+// FeedItem in user's feed
+message FeedItem {
+  // Pin details
+  alunalun.v1.entities.Pin pin = 1;
+  
+  // Creator details
+  alunalun.v1.entities.User creator = 2;
+  
+  // Why this item is in feed
+  FeedReason reason = 3;
+  
+  // Relevance score
+  float score = 4;
+  
+  // User's interactions
+  PinInteractions interactions = 5;
+}
+
+// FeedReason explains why item is shown
+message FeedReason {
+  // Reason type
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_FOLLOWING = 1;      // From followed user
+    TYPE_NEARBY = 2;         // Near your location
+    TYPE_TRENDING = 3;       // Popular/trending
+    TYPE_RECOMMENDED = 4;    // ML recommendation
+    TYPE_SIMILAR = 5;        // Similar to your interests
+  }
+  Type type = 1;
+  
+  // Explanation text
+  string explanation = 2;
+}
+
+// GetTrendingPinsRequest
+message GetTrendingPinsRequest {
+  // Time window for trending
+  enum TimeWindow {
+    TIME_WINDOW_UNSPECIFIED = 0;
+    TIME_WINDOW_HOUR = 1;
+    TIME_WINDOW_DAY = 2;
+    TIME_WINDOW_WEEK = 3;
+    TIME_WINDOW_MONTH = 4;
+  }
+  TimeWindow time_window = 1;
+  
+  // Location for local trending
+  alunalun.v1.entities.Location location = 2;
+  
+  // Radius for local trending
+  float radius_meters = 3;
+  
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 4;
+  
+  // Categories to include
+  repeated alunalun.v1.entities.PinType types = 5;
+}
+
+message GetTrendingPinsResponse {
+  // Trending pins
+  repeated TrendingPin pins = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+  
+  // Time window used
+  google.protobuf.Timestamp from_time = 3;
+  google.protobuf.Timestamp to_time = 4;
+}
+
+// TrendingPin with trending metrics
+message TrendingPin {
+  // Pin details
+  alunalun.v1.entities.Pin pin = 1;
+  
+  // Trending score
+  float trending_score = 2;
+  
+  // Trending rank
+  int32 rank = 3;
+  
+  // Trend direction
+  enum TrendDirection {
+    TREND_DIRECTION_UNSPECIFIED = 0;
+    TREND_DIRECTION_UP = 1;
+    TREND_DIRECTION_DOWN = 2;
+    TREND_DIRECTION_STABLE = 3;
+    TREND_DIRECTION_NEW = 4;
+  }
+  TrendDirection direction = 4;
+  
+  // Change in rank
+  int32 rank_change = 5;
+  
+  // Engagement metrics
+  int32 recent_views = 6;
+  int32 recent_likes = 7;
+  int32 recent_comments = 8;
+}
+
+// Pin interactions
+
+// LikePinRequest
+message LikePinRequest {
+  // Pin ID to like
+  string pin_id = 1; // required
+}
+
+message LikePinResponse {
+  // Updated like count
+  int32 like_count = 1;
+  
+  // Whether user now likes the pin
+  bool is_liked = 2;
+}
+
+// UnlikePinRequest
+message UnlikePinRequest {
+  // Pin ID to unlike
+  string pin_id = 1; // required
+}
+
+// CommentOnPinRequest
+message CommentOnPinRequest {
+  // Pin ID to comment on
+  string pin_id = 1; // required
+  
+  // Comment text
+  string text = 2; // required, max 500 chars
+  
+  // Parent comment ID (for replies)
+  string parent_comment_id = 3;
+  
+  // Mentioned user IDs
+  repeated string mentions = 4;
+}
+
+message CommentOnPinResponse {
+  // Created comment
+  Comment comment = 1;
+  
+  // Updated comment count
+  int32 total_comments = 2;
+}
+
+// Comment represents a pin comment
+message Comment {
+  // Comment ID
+  string id = 1;
+  
+  // Pin ID
+  string pin_id = 2;
+  
+  // Author
+  alunalun.v1.entities.User author = 3;
+  
+  // Comment text
+  string text = 4;
+  
+  // Parent comment ID (for threading)
+  string parent_comment_id = 5;
+  
+  // Reply count
+  int32 reply_count = 6;
+  
+  // Like count
+  int32 like_count = 7;
+  
+  // Whether current user liked
+  bool is_liked = 8;
+  
+  // Mentioned users
+  repeated alunalun.v1.entities.User mentions = 9;
+  
+  // Timestamps
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+  
+  // Whether edited
+  bool is_edited = 12;
+  
+  // Whether deleted
+  bool is_deleted = 13;
+}
+
+// GetPinCommentsRequest
+message GetPinCommentsRequest {
+  // Pin ID
+  string pin_id = 1; // required
+  
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 2;
+  
+  // Sort order
+  enum SortOrder {
+    SORT_ORDER_UNSPECIFIED = 0;
+    SORT_ORDER_NEWEST = 1;
+    SORT_ORDER_OLDEST = 2;
+    SORT_ORDER_POPULAR = 3;
+  }
+  SortOrder sort_order = 3;
+  
+  // Include replies
+  bool include_replies = 4;
+}
+
+message GetPinCommentsResponse {
+  // Comments
+  repeated Comment comments = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+  
+  // Total comments (including replies)
+  int32 total_comments = 3;
+}
+
+// DeleteCommentRequest
+message DeleteCommentRequest {
+  // Comment ID to delete
+  string comment_id = 1; // required
+  
+  // Reason (for moderation)
+  string reason = 2;
+  
+  // Hard delete (admin only)
+  bool hard_delete = 3;
+}
+
+// SharePinRequest
+message SharePinRequest {
+  // Pin ID to share
+  string pin_id = 1; // required
+  
+  // Share method
+  enum ShareMethod {
+    SHARE_METHOD_UNSPECIFIED = 0;
+    SHARE_METHOD_LINK = 1;
+    SHARE_METHOD_REPIN = 2;
+    SHARE_METHOD_STORY = 3;
+    SHARE_METHOD_MESSAGE = 4;
+  }
+  ShareMethod method = 2;
+  
+  // Target user IDs (for direct share)
+  repeated string target_user_ids = 3;
+  
+  // Share message
+  string message = 4;
+}
+
+message SharePinResponse {
+  // Share URL
+  string share_url = 1;
+  
+  // Share ID (for tracking)
+  string share_id = 2;
+  
+  // Updated share count
+  int32 share_count = 3;
+}
+
+// SavePinRequest
+message SavePinRequest {
+  // Pin ID to save
+  string pin_id = 1; // required
+  
+  // Collection/board to save to
+  string collection_id = 2;
+}
+
+message SavePinResponse {
+  // Save ID
+  string save_id = 1;
+  
+  // Updated save count
+  int32 save_count = 2;
+  
+  // Collection it was saved to
+  string collection_id = 3;
+}
+
+// UnsavePinRequest
+message UnsavePinRequest {
+  // Pin ID to unsave
+  string pin_id = 1; // required
+  
+  // Specific save ID (if multiple saves)
+  string save_id = 2;
+}
+
+// GetSavedPinsRequest
+message GetSavedPinsRequest {
+  // Collection ID (optional)
+  string collection_id = 1;
+  
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 2;
+}
+
+message GetSavedPinsResponse {
+  // Saved pins
+  repeated SavedPin pins = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+}
+
+// SavedPin with save metadata
+message SavedPin {
+  // Pin details
+  alunalun.v1.entities.Pin pin = 1;
+  
+  // When saved
+  google.protobuf.Timestamp saved_at = 2;
+  
+  // Collection ID
+  string collection_id = 3;
+  
+  // Save note
+  string note = 4;
+}
+
+// ReportPinRequest
+message ReportPinRequest {
+  // Pin ID to report
+  string pin_id = 1; // required
+  
+  // Report reason
+  ReportReason reason = 2; // required
+  
+  // Additional details
+  string details = 3;
+  
+  // Evidence URLs (screenshots, etc.)
+  repeated string evidence_urls = 4;
+}
+
+// ReportReason for content moderation
+enum ReportReason {
+  REPORT_REASON_UNSPECIFIED = 0;
+  REPORT_REASON_SPAM = 1;
+  REPORT_REASON_INAPPROPRIATE = 2;
+  REPORT_REASON_HARASSMENT = 3;
+  REPORT_REASON_VIOLENCE = 4;
+  REPORT_REASON_HATE_SPEECH = 5;
+  REPORT_REASON_MISINFORMATION = 6;
+  REPORT_REASON_COPYRIGHT = 7;
+  REPORT_REASON_PRIVACY = 8;
+  REPORT_REASON_OTHER = 9;
+}
+
+message ReportPinResponse {
+  // Report ID for tracking
+  string report_id = 1;
+  
+  // Report status
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_RECEIVED = 1;
+    STATUS_UNDER_REVIEW = 2;
+    STATUS_RESOLVED = 3;
+  }
+  Status status = 2;
+  
+  // Estimated review time
+  google.protobuf.Timestamp estimated_review_by = 3;
+}
+
+// Analytics
+
+// GetPinStatsRequest
+message GetPinStatsRequest {
+  // Pin ID
+  string pin_id = 1; // required
+  
+  // Time period
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+  
+  // Granularity
+  enum Granularity {
+    GRANULARITY_UNSPECIFIED = 0;
+    GRANULARITY_HOUR = 1;
+    GRANULARITY_DAY = 2;
+    GRANULARITY_WEEK = 3;
+    GRANULARITY_MONTH = 4;
+  }
+  Granularity granularity = 4;
+}
+
+message GetPinStatsResponse {
+  // Overall stats
+  alunalun.v1.entities.PinStats overall_stats = 1;
+  
+  // Time series data
+  repeated TimeSeries time_series = 2;
+  
+  // Demographics
+  Demographics demographics = 3;
+  
+  // Geographic distribution
+  repeated GeoDistribution geo_distribution = 4;
+}
+
+// TimeSeries for analytics
+message TimeSeries {
+  // Timestamp
+  google.protobuf.Timestamp timestamp = 1;
+  
+  // Metrics
+  int32 views = 2;
+  int32 likes = 3;
+  int32 comments = 4;
+  int32 shares = 5;
+  int32 saves = 6;
+}
+
+// Demographics breakdown
+message Demographics {
+  // Age groups
+  map<string, int32> age_groups = 1;
+  
+  // Gender distribution
+  map<string, int32> genders = 2;
+  
+  // Top interests
+  repeated string top_interests = 3;
+}
+
+// GeoDistribution for location data
+message GeoDistribution {
+  // Country/region
+  string location = 1;
+  
+  // View count from this location
+  int32 views = 2;
+  
+  // Percentage of total
+  float percentage = 3;
+}
+
+// RecordPinViewRequest
+message RecordPinViewRequest {
+  // Pin ID
+  string pin_id = 1; // required
+  
+  // View duration in seconds
+  float duration_seconds = 2;
+  
+  // View source
+  enum ViewSource {
+    VIEW_SOURCE_UNSPECIFIED = 0;
+    VIEW_SOURCE_FEED = 1;
+    VIEW_SOURCE_SEARCH = 2;
+    VIEW_SOURCE_MAP = 3;
+    VIEW_SOURCE_PROFILE = 4;
+    VIEW_SOURCE_SHARE = 5;
+    VIEW_SOURCE_DIRECT = 6;
+  }
+  ViewSource source = 3;
+  
+  // Session ID (for analytics)
+  string session_id = 4;
+}
+
+// Bulk operations
+
+// BatchGetPinsRequest
+message BatchGetPinsRequest {
+  // Pin IDs to retrieve
+  repeated string pin_ids = 1; // required, max 100
+  
+  // Fields to include
+  google.protobuf.FieldMask field_mask = 2;
+  
+  // Include interactions
+  bool include_interactions = 3;
+}
+
+message BatchGetPinsResponse {
+  // Map of pin ID to pin
+  map<string, alunalun.v1.entities.Pin> pins = 1;
+  
+  // IDs that were not found
+  repeated string not_found = 2;
+  
+  // IDs that user cannot access
+  repeated string forbidden = 3;
+}
+
+// BatchDeletePinsRequest
+message BatchDeletePinsRequest {
+  // Pin IDs to delete
+  repeated string pin_ids = 1; // required, max 100
+  
+  // Reason for deletion
+  string reason = 2;
+  
+  // Hard delete (admin only)
+  bool hard_delete = 3;
+}
+
+message BatchDeletePinsResponse {
+  // Successfully deleted IDs
+  repeated string deleted = 1;
+  
+  // Failed deletions with reasons
+  map<string, string> failed = 2;
+}

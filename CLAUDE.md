@@ -1,0 +1,3 @@
+- always use alias @/* imports wherever possible, avoid relative imports unless necessary
+- stop creating files or routes just for demo. just tell user how it works
+- always use tailwind css, not inline css

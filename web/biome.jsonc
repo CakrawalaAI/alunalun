@@ -1,0 +1,283 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
+
+  // VCS Integration
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true, // Respect .gitignore files
+    "defaultBranch": "main" // Main branch for --changed flag
+  },
+
+  // File Configuration
+  "files": {
+    "includes": [
+      "**/*.{js,jsx,ts,tsx,json,jsonc,css}", // All JS/TS/JSON/CSS files
+      "!src/common/components/ui", // shadcn UI components (generated)
+      "!src/services/connectrpc", // Generated protobuf code
+      "!node_modules", // Dependencies
+      "!dist", // Build output
+      "!build", // Build output
+      "!coverage" // Test coverage
+    ],
+    "ignoreUnknown": false, // Warn about unknown file types (default: true)
+    "maxSize": 1024000 // 1MB max file size (default)
+  },
+
+  // === FORMATTER CONFIGURATION ===
+  "formatter": {
+    "enabled": true, // Enable formatter (default)
+    "formatWithErrors": false, // Don't format if there are syntax errors
+    "indentStyle": "space", // Use spaces instead of tabs
+    "indentWidth": 2, // 2 spaces per indent
+    "lineWidth": 80, // Wrap at 80 characters
+    "lineEnding": "lf", // Unix line endings (default)
+    "attributePosition": "auto" // Let Biome decide attribute positioning
+  },
+
+  // JavaScript/TypeScript Specific Formatting
+  "javascript": {
+    "formatter": {
+      "enabled": true, // Enable JS/TS formatting
+      "quoteStyle": "double", // Double quotes (default)
+      "jsxQuoteStyle": "double", // JSX attributes use double quotes
+      "semicolons": "always", // Always use semicolons (default)
+      "trailingCommas": "all", // Trailing commas everywhere (default)
+      "arrowParentheses": "always", // Always use parens: (x) => x (default)
+      "bracketSameLine": false, // Opening bracket on new line (default)
+      "bracketSpacing": true, // Spaces in brackets: { foo } (default)
+      "quoteProperties": "asNeeded" // Quote properties only when needed
+    }
+  },
+
+  // JSON Specific Formatting
+  "json": {
+    "formatter": {
+      "enabled": true, // Enable JSON formatting
+      "trailingCommas": "none" // No trailing commas in JSON (standard)
+    }
+  },
+
+  // CSS Configuration
+  "css": {
+    "linter": {
+      "enabled": true // Enable CSS linting
+    },
+    "formatter": {
+      "enabled": true // Enable CSS formatting
+    }
+  },
+
+  // GraphQL Configuration
+  "graphql": {
+    "linter": {
+      "enabled": true // Enable GraphQL linting
+    },
+    "formatter": {
+      "enabled": true // Enable GraphQL formatting
+    }
+  },
+
+  // === LINTER CONFIGURATION ===
+  "linter": {
+    "enabled": true, // Enable linter
+    "rules": {
+      "recommended": true, // Use Biome's recommended rules
+
+      // Accessibility Rules - Warning level for gradual improvement
+      "a11y": {
+        "useAltText": "warn", // Warn about missing alt text
+        "useButtonType": "warn", // Warn about buttons without type
+        "noAriaUnsupportedElements": "warn", // Warn about ARIA on unsupported elements
+        "useValidAnchor": "warn" // Warn about invalid anchor elements
+      },
+
+      // Complexity Rules - Error level for code quality
+      "complexity": {
+        "noForEach": "error", // Prefer for...of over forEach
+        "noUselessFragments": "error", // Avoid unnecessary React Fragments
+        "useFlatMap": "error", // Use flatMap over map().flat()
+        "useOptionalChain": "error", // Use ?. instead of && chains
+        "useSimplifiedLogicExpression": "error", // Simplify boolean logic
+        "noExcessiveCognitiveComplexity": "off", // Allow complex functions when needed
+        "noVoid": "off" // Allow void operator
+      },
+
+      // Correctness Rules - Catch actual bugs
+      "correctness": {
+        "noUnusedVariables": "error", // No unused variables
+        "useExhaustiveDependencies": "warn" // React hook dependencies
+      },
+
+      // Performance Rules - Warning level for optimization hints
+      "performance": {
+        "noAccumulatingSpread": "warn", // Avoid spread in loops
+        "noDelete": "warn", // Prefer setting to undefined
+        "noImgElement": "off" // Allow img elements (Next.js Image not always needed)
+      },
+
+      // Security Rules - Warning level for security issues
+      "security": {
+        "noBlankTarget": "warn", // Require rel="noreferrer" with target="_blank"
+        "noDangerouslySetInnerHtml": "warn", // XSS prevention
+        "noGlobalEval": "warn" // Prevent eval() usage
+      },
+
+      // Style Rules - Consistent code style
+      "style": {
+        "useBlockStatements": {
+          // Always use block statements
+          "level": "error",
+          "fix": "safe" // AUTO-FIX: Will add braces automatically
+        },
+        "noInferrableTypes": "warn", // Don't add redundant types
+        "useConst": "warn", // Prefer const over let
+        "useTemplate": "warn", // Prefer template literals
+        "useImportType": "warn", // Use import type for types
+        "noNonNullAssertion": "warn", // Discourage ! operator
+        "noParameterAssign": "off", // Allow parameter reassignment (React patterns)
+        "useFilenamingConvention": "off", // Allow PascalCase for React components
+        "noEnum": "off", // Allow enums (protobuf generated)
+        "useConsistentMemberAccessibility": "off" // Allow mixed accessibility
+      },
+
+      // Suspicious Rules - Likely bugs
+      "suspicious": {
+        "noDebugger": "warn", // Warn about debugger statements
+        "noExplicitAny": "warn", // Warn about any type
+        "noConsole": {
+          // Custom console configuration
+          "level": "warn",
+          "options": {
+            "allow": [
+              "error",
+              "warn",
+              "info",
+              "debug",
+              "assert",
+              "table",
+              "time",
+              "timeEnd"
+            ]
+          }
+        },
+        "noArrayIndexKey": "off", // Allow array index as React key when appropriate
+        "noEmptyInterface": "off", // Allow empty interfaces for future extension
+        "noEmptyBlockStatements": "warn", // Warn about empty blocks
+        "useAwait": "off", // Allow async functions without await
+        "noConstEnum": "warn" // Warn about const enums (bundling issues)
+      },
+
+      // Nursery (experimental) rules - Only stable ones
+      "nursery": {
+        "useSortedClasses": {
+          "level": "error",
+          "fix": "safe" // AUTO-FIX: Will sort Tailwind classes
+        }
+      }
+    }
+  },
+
+  // === OVERRIDES FOR SPECIFIC FILE PATTERNS ===
+  "overrides": [
+    // Test Files - Relaxed rules
+    {
+      "includes": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.test.js",
+        "**/*.test.jsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/*.spec.js",
+        "**/*.spec.jsx",
+        "**/__tests__/**",
+        "**/tests/**"
+      ],
+      "formatter": {
+        "lineWidth": 120 // Allow longer lines in tests
+      },
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off", // Allow console in tests
+            "noDebugger": "off", // Allow debugger in tests
+            "noExplicitAny": "off", // Allow any types in tests
+            "noEmptyBlockStatements": "off" // Allow empty blocks in tests
+          },
+          "style": {
+            "noNonNullAssertion": "off" // Allow non-null assertions in tests
+          },
+          "performance": {
+            "noDelete": "off" // Allow delete in tests for cleanup
+          },
+          "correctness": {
+            "noUnusedVariables": "warn" // Relax unused vars in tests
+          }
+        }
+      }
+    },
+
+    // Configuration and Build Files - Relaxed rules
+    {
+      "includes": [
+        "*.config.js",
+        "*.config.ts",
+        "*.config.mjs",
+        "*.config.cjs",
+        "vite.config.*",
+        "scripts/**",
+        "tools/**"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off" // Allow console in config files
+          }
+        }
+      }
+    },
+
+    // Special files with console access
+    {
+      "includes": ["src/common/utils/logger.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off", // Logger needs console
+            "noExplicitAny": "off" // Logger handles any type for flexibility
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/common/analytics/analytics.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off" // Analytics debug logging in development
+          }
+        }
+      }
+    },
+
+    // CSS Files
+    {
+      "includes": ["src/app/index.css"],
+      "linter": {
+        "enabled": false // Skip linting Tailwind v4 CSS
+      }
+    }
+  ],
+
+  // === CODE ACTIONS & ASSISTS ===
+  "assist": {
+    "enabled": true, // Enable code assists
+    "actions": {
+      "source": {
+        "organizeImports": "on", // AUTO-FIX: Organize imports on save
+        "useSortedAttributes": "off" // Keep JSX attributes in original order
+      }
+    }
+  }
+}

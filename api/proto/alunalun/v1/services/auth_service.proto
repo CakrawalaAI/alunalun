@@ -1,0 +1,483 @@
+syntax = "proto3";
+
+package alunalun.v1.services;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "alunalun/v1/entities/auth.proto";
+import "alunalun/v1/entities/user.proto";
+import "alunalun/v1/common/error.proto";
+
+option go_package = "github.com/ckrwl/alunalun/api/gen/go/alunalun/v1/services;services";
+
+// AuthService handles authentication and authorization
+service AuthService {
+  // Register creates a new user account
+  // Returns: User and authentication tokens
+  // Errors: ALREADY_EXISTS if email/username taken
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  
+  // Login authenticates a user and creates a session
+  // Returns: User and authentication tokens
+  // Errors: UNAUTHENTICATED if credentials invalid
+  rpc Login(LoginRequest) returns (LoginResponse);
+  
+  // Logout invalidates the current session
+  // Returns: Empty on success
+  // Errors: UNAUTHENTICATED if token invalid
+  rpc Logout(LogoutRequest) returns (google.protobuf.Empty);
+  
+  // RefreshToken exchanges a refresh token for new tokens
+  // Returns: New authentication tokens
+  // Errors: UNAUTHENTICATED if refresh token invalid/expired
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  
+  // ValidateToken checks if a token is valid
+  // Returns: Token claims and user info
+  // Errors: UNAUTHENTICATED if token invalid
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+  
+  // ChangePassword updates the user's password
+  // Returns: Empty on success
+  // Errors: UNAUTHENTICATED if old password wrong
+  rpc ChangePassword(ChangePasswordRequest) returns (google.protobuf.Empty);
+  
+  // RequestPasswordReset initiates password reset flow
+  // Returns: Empty on success (email sent)
+  // Errors: NOT_FOUND if email doesn't exist (may return success for security)
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (google.protobuf.Empty);
+  
+  // ResetPassword completes password reset with token
+  // Returns: Empty on success
+  // Errors: INVALID_ARGUMENT if token invalid/expired
+  rpc ResetPassword(ResetPasswordRequest) returns (google.protobuf.Empty);
+  
+  // VerifyEmail verifies email with token
+  // Returns: Empty on success
+  // Errors: INVALID_ARGUMENT if token invalid/expired
+  rpc VerifyEmail(VerifyEmailRequest) returns (google.protobuf.Empty);
+  
+  // ResendVerificationEmail sends a new verification email
+  // Returns: Empty on success
+  // Errors: FAILED_PRECONDITION if already verified
+  rpc ResendVerificationEmail(ResendVerificationEmailRequest) returns (google.protobuf.Empty);
+  
+  // OAuth endpoints
+  
+  // InitiateOAuth starts OAuth flow
+  // Returns: Redirect URL for OAuth provider
+  rpc InitiateOAuth(InitiateOAuthRequest) returns (InitiateOAuthResponse);
+  
+  // CompleteOAuth completes OAuth flow with callback
+  // Returns: User and authentication tokens
+  // Errors: UNAUTHENTICATED if OAuth failed
+  rpc CompleteOAuth(CompleteOAuthRequest) returns (CompleteOAuthResponse);
+  
+  // LinkOAuthAccount links OAuth account to existing user
+  // Returns: Updated user with linked account
+  // Errors: ALREADY_EXISTS if provider already linked
+  rpc LinkOAuthAccount(LinkOAuthAccountRequest) returns (LinkOAuthAccountResponse);
+  
+  // UnlinkOAuthAccount unlinks OAuth account
+  // Returns: Updated user
+  // Errors: FAILED_PRECONDITION if last auth method
+  rpc UnlinkOAuthAccount(UnlinkOAuthAccountRequest) returns (UnlinkOAuthAccountResponse);
+  
+  // Session management
+  
+  // GetSessions lists all active sessions for user
+  // Returns: List of active sessions
+  rpc GetSessions(GetSessionsRequest) returns (GetSessionsResponse);
+  
+  // RevokeSession terminates a specific session
+  // Returns: Empty on success
+  // Errors: NOT_FOUND if session doesn't exist
+  rpc RevokeSession(RevokeSessionRequest) returns (google.protobuf.Empty);
+  
+  // RevokeAllSessions terminates all sessions except current
+  // Returns: Empty on success
+  rpc RevokeAllSessions(RevokeAllSessionsRequest) returns (google.protobuf.Empty);
+  
+  // Two-factor authentication
+  
+  // Enable2FA enables two-factor authentication
+  // Returns: Setup information (QR code, backup codes)
+  rpc Enable2FA(Enable2FARequest) returns (Enable2FAResponse);
+  
+  // Disable2FA disables two-factor authentication
+  // Returns: Empty on success
+  // Errors: UNAUTHENTICATED if password wrong
+  rpc Disable2FA(Disable2FARequest) returns (google.protobuf.Empty);
+  
+  // Verify2FA verifies 2FA code during login
+  // Returns: Authentication tokens
+  // Errors: UNAUTHENTICATED if code invalid
+  rpc Verify2FA(Verify2FARequest) returns (Verify2FAResponse);
+  
+  // GenerateBackupCodes generates new 2FA backup codes
+  // Returns: New backup codes
+  rpc GenerateBackupCodes(GenerateBackupCodesRequest) returns (GenerateBackupCodesResponse);
+}
+
+// RegisterRequest for creating a new account
+message RegisterRequest {
+  // User's email address
+  string email = 1; // required, valid email format
+  
+  // User's password
+  string password = 2; // required, min 8 chars
+  
+  // Username (unique identifier)
+  string username = 3; // required, 3-30 chars, alphanumeric + underscore
+  
+  // Display name
+  string display_name = 4; // optional
+  
+  // Full name
+  string full_name = 5; // optional
+  
+  // Terms acceptance
+  bool accept_terms = 6; // required, must be true
+  
+  // Marketing emails opt-in
+  bool marketing_opt_in = 7; // optional
+  
+  // Referral code
+  string referral_code = 8; // optional
+  
+  // Device information
+  alunalun.v1.entities.DeviceInfo device = 9;
+}
+
+message RegisterResponse {
+  // Created user
+  alunalun.v1.entities.User user = 1;
+  
+  // Authentication tokens
+  alunalun.v1.entities.Token token = 2;
+  
+  // Whether email verification is required
+  bool requires_email_verification = 3;
+}
+
+// LoginRequest for email/password login
+message LoginRequest {
+  // Email or username
+  string identifier = 1; // required
+  
+  // Password
+  string password = 2; // required
+  
+  // Remember me (longer session)
+  bool remember_me = 3;
+  
+  // Device information
+  alunalun.v1.entities.DeviceInfo device = 4;
+  
+  // Two-factor code (if 2FA enabled)
+  string totp_code = 5;
+}
+
+message LoginResponse {
+  // Authenticated user
+  alunalun.v1.entities.User user = 1;
+  
+  // Authentication tokens
+  alunalun.v1.entities.Token token = 2;
+  
+  // Whether 2FA is required (code not provided)
+  bool requires_2fa = 3;
+  
+  // Session information
+  alunalun.v1.entities.Session session = 4;
+}
+
+// LogoutRequest to end session
+message LogoutRequest {
+  // Optional: specific session ID to logout
+  // If not provided, logs out current session
+  string session_id = 1;
+  
+  // Logout from all devices
+  bool all_devices = 2;
+}
+
+// RefreshTokenRequest to get new tokens
+message RefreshTokenRequest {
+  // Refresh token
+  string refresh_token = 1; // required
+  
+  // Optional: specific scopes
+  repeated string scopes = 2;
+}
+
+message RefreshTokenResponse {
+  // New tokens
+  alunalun.v1.entities.Token token = 1;
+  
+  // Updated session info
+  alunalun.v1.entities.Session session = 2;
+}
+
+// ValidateTokenRequest to check token validity
+message ValidateTokenRequest {
+  // Access token to validate
+  string access_token = 1; // required
+  
+  // Check specific permissions
+  repeated string required_scopes = 2;
+}
+
+message ValidateTokenResponse {
+  // Whether token is valid
+  bool valid = 1;
+  
+  // User associated with token
+  alunalun.v1.entities.User user = 2;
+  
+  // Token claims
+  TokenClaims claims = 3;
+  
+  // Remaining lifetime in seconds
+  int32 expires_in = 4;
+}
+
+// TokenClaims represents JWT claims
+message TokenClaims {
+  // Subject (user ID)
+  string sub = 1;
+  
+  // Issued at (unix timestamp)
+  int64 iat = 2;
+  
+  // Expiration (unix timestamp)
+  int64 exp = 3;
+  
+  // Token ID
+  string jti = 4;
+  
+  // Scopes/permissions
+  repeated string scopes = 5;
+  
+  // Additional claims
+  map<string, string> extra = 6;
+}
+
+// ChangePasswordRequest to update password
+message ChangePasswordRequest {
+  // Current password
+  string old_password = 1; // required
+  
+  // New password
+  string new_password = 2; // required, min 8 chars
+  
+  // Logout other sessions
+  bool logout_other_sessions = 3;
+}
+
+// RequestPasswordResetRequest to initiate reset
+message RequestPasswordResetRequest {
+  // Email address
+  string email = 1; // required
+  
+  // Optional: custom reset URL template
+  // Example: "https://app.com/reset?token={token}"
+  string reset_url_template = 2;
+}
+
+// ResetPasswordRequest to complete reset
+message ResetPasswordRequest {
+  // Reset token (from email)
+  string token = 1; // required
+  
+  // New password
+  string new_password = 2; // required, min 8 chars
+}
+
+// VerifyEmailRequest to verify email
+message VerifyEmailRequest {
+  // Verification token (from email)
+  string token = 1; // required
+}
+
+// ResendVerificationEmailRequest
+message ResendVerificationEmailRequest {
+  // Email address (or use current user)
+  string email = 1;
+}
+
+// OAuth flow messages
+
+message InitiateOAuthRequest {
+  // OAuth provider
+  alunalun.v1.entities.AuthProvider provider = 1; // required
+  
+  // Redirect URI after OAuth
+  string redirect_uri = 2; // required
+  
+  // State parameter for CSRF protection
+  string state = 3;
+  
+  // Additional scopes to request
+  repeated string scopes = 4;
+}
+
+message InitiateOAuthResponse {
+  // URL to redirect user to
+  string auth_url = 1;
+  
+  // State parameter (for verification)
+  string state = 2;
+}
+
+message CompleteOAuthRequest {
+  // OAuth provider
+  alunalun.v1.entities.AuthProvider provider = 1; // required
+  
+  // Authorization code
+  string code = 2; // required
+  
+  // State parameter (for CSRF protection)
+  string state = 3; // required
+  
+  // Redirect URI (must match initiate)
+  string redirect_uri = 4; // required
+  
+  // Device information
+  alunalun.v1.entities.DeviceInfo device = 5;
+}
+
+message CompleteOAuthResponse {
+  // User (existing or newly created)
+  alunalun.v1.entities.User user = 1;
+  
+  // Authentication tokens
+  alunalun.v1.entities.Token token = 2;
+  
+  // Whether this is a new user
+  bool is_new_user = 3;
+  
+  // Session information
+  alunalun.v1.entities.Session session = 4;
+}
+
+message LinkOAuthAccountRequest {
+  // OAuth provider to link
+  alunalun.v1.entities.AuthProvider provider = 1; // required
+  
+  // OAuth access token
+  string access_token = 2; // required
+}
+
+message LinkOAuthAccountResponse {
+  // Updated user with linked account
+  alunalun.v1.entities.User user = 1;
+  
+  // Linked auth methods
+  repeated alunalun.v1.entities.AuthMethod auth_methods = 2;
+}
+
+message UnlinkOAuthAccountRequest {
+  // OAuth provider to unlink
+  alunalun.v1.entities.AuthProvider provider = 1; // required
+  
+  // Confirm with password (for security)
+  string password = 2;
+}
+
+message UnlinkOAuthAccountResponse {
+  // Updated user
+  alunalun.v1.entities.User user = 1;
+  
+  // Remaining auth methods
+  repeated alunalun.v1.entities.AuthMethod auth_methods = 2;
+}
+
+// Session management messages
+
+message GetSessionsRequest {
+  // Optional: filter by active only
+  bool active_only = 1;
+}
+
+message GetSessionsResponse {
+  // List of sessions
+  repeated alunalun.v1.entities.Session sessions = 1;
+  
+  // Current session ID
+  string current_session_id = 2;
+}
+
+message RevokeSessionRequest {
+  // Session ID to revoke
+  string session_id = 1; // required
+}
+
+message RevokeAllSessionsRequest {
+  // Keep current session active
+  bool keep_current = 1;
+}
+
+// 2FA messages
+
+message Enable2FARequest {
+  // 2FA method to enable
+  alunalun.v1.entities.TwoFactorAuth.Method method = 1; // required
+  
+  // Password confirmation
+  string password = 2; // required
+}
+
+message Enable2FAResponse {
+  // QR code for TOTP setup (base64 encoded image)
+  string qr_code = 1;
+  
+  // Secret key (for manual entry)
+  string secret = 2;
+  
+  // Backup codes
+  repeated string backup_codes = 3;
+  
+  // Setup instructions
+  string instructions = 4;
+}
+
+message Disable2FARequest {
+  // Password confirmation
+  string password = 1; // required
+  
+  // Reason for disabling (for audit)
+  string reason = 2;
+}
+
+message Verify2FARequest {
+  // Session token from login
+  string session_token = 1; // required
+  
+  // 2FA code
+  string code = 2; // required
+  
+  // Remember this device
+  bool trust_device = 3;
+}
+
+message Verify2FAResponse {
+  // Authentication tokens
+  alunalun.v1.entities.Token token = 1;
+  
+  // Session information
+  alunalun.v1.entities.Session session = 2;
+}
+
+message GenerateBackupCodesRequest {
+  // Password confirmation
+  string password = 1; // required
+}
+
+message GenerateBackupCodesResponse {
+  // New backup codes
+  repeated string backup_codes = 1;
+  
+  // When codes were generated
+  google.protobuf.Timestamp generated_at = 2;
+}

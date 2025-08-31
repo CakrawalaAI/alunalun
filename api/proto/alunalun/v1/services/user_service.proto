@@ -1,0 +1,690 @@
+syntax = "proto3";
+
+package alunalun.v1.services;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "alunalun/v1/entities/user.proto";
+import "alunalun/v1/common/pagination.proto";
+import "alunalun/v1/common/error.proto";
+
+option go_package = "github.com/ckrwl/alunalun/api/gen/go/alunalun/v1/services;services";
+
+// UserService handles user management operations
+service UserService {
+  // GetUser retrieves a user by ID
+  // Returns: User details
+  // Errors: NOT_FOUND if user doesn't exist
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  
+  // GetCurrentUser retrieves the authenticated user
+  // Returns: Current user details
+  // Errors: UNAUTHENTICATED if not logged in
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
+  
+  // GetUserByUsername retrieves a user by username
+  // Returns: User details
+  // Errors: NOT_FOUND if username doesn't exist
+  rpc GetUserByUsername(GetUserByUsernameRequest) returns (GetUserByUsernameResponse);
+  
+  // ListUsers lists users with filtering and pagination
+  // Returns: Paginated list of users
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  
+  // SearchUsers searches for users by query
+  // Returns: Search results
+  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
+  
+  // UpdateUser updates user information
+  // Returns: Updated user
+  // Errors: NOT_FOUND, PERMISSION_DENIED
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  
+  // UpdateProfile updates user profile
+  // Returns: Updated user
+  // Errors: INVALID_ARGUMENT for validation errors
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  
+  // UpdateSettings updates user settings
+  // Returns: Updated settings
+  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
+  
+  // DeleteUser deletes a user account
+  // Returns: Empty on success
+  // Errors: NOT_FOUND, PERMISSION_DENIED
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty);
+  
+  // User relationships
+  
+  // FollowUser follows another user
+  // Returns: Relationship status
+  // Errors: NOT_FOUND, ALREADY_EXISTS
+  rpc FollowUser(FollowUserRequest) returns (FollowUserResponse);
+  
+  // UnfollowUser unfollows a user
+  // Returns: Empty on success
+  // Errors: NOT_FOUND
+  rpc UnfollowUser(UnfollowUserRequest) returns (google.protobuf.Empty);
+  
+  // GetFollowers gets user's followers
+  // Returns: Paginated list of followers
+  rpc GetFollowers(GetFollowersRequest) returns (GetFollowersResponse);
+  
+  // GetFollowing gets users that user follows
+  // Returns: Paginated list of following
+  rpc GetFollowing(GetFollowingRequest) returns (GetFollowingResponse);
+  
+  // BlockUser blocks another user
+  // Returns: Empty on success
+  // Errors: NOT_FOUND, ALREADY_EXISTS
+  rpc BlockUser(BlockUserRequest) returns (google.protobuf.Empty);
+  
+  // UnblockUser unblocks a user
+  // Returns: Empty on success
+  // Errors: NOT_FOUND
+  rpc UnblockUser(UnblockUserRequest) returns (google.protobuf.Empty);
+  
+  // GetBlockedUsers gets list of blocked users
+  // Returns: Paginated list of blocked users
+  rpc GetBlockedUsers(GetBlockedUsersRequest) returns (GetBlockedUsersResponse);
+  
+  // User verification and badges
+  
+  // RequestVerification requests account verification
+  // Returns: Verification request status
+  rpc RequestVerification(RequestVerificationRequest) returns (RequestVerificationResponse);
+  
+  // User statistics
+  
+  // GetUserStats gets user statistics
+  // Returns: User statistics
+  rpc GetUserStats(GetUserStatsRequest) returns (GetUserStatsResponse);
+  
+  // User activity
+  
+  // GetUserActivity gets user's recent activity
+  // Returns: Activity feed
+  rpc GetUserActivity(GetUserActivityRequest) returns (GetUserActivityResponse);
+  
+  // Bulk operations
+  
+  // BatchGetUsers gets multiple users by IDs
+  // Returns: Map of users by ID
+  rpc BatchGetUsers(BatchGetUsersRequest) returns (BatchGetUsersResponse);
+  
+  // CheckUsername checks if username is available
+  // Returns: Availability status
+  rpc CheckUsername(CheckUsernameRequest) returns (CheckUsernameResponse);
+  
+  // CheckEmail checks if email is available
+  // Returns: Availability status
+  rpc CheckEmail(CheckEmailRequest) returns (CheckEmailResponse);
+}
+
+// GetUserRequest to retrieve a user
+message GetUserRequest {
+  // User ID
+  string user_id = 1; // required
+  
+  // Fields to include (for partial responses)
+  google.protobuf.FieldMask field_mask = 2;
+}
+
+message GetUserResponse {
+  // User details
+  alunalun.v1.entities.User user = 1;
+  
+  // Relationship to current user (if authenticated)
+  UserRelationship relationship = 2;
+}
+
+// GetCurrentUserRequest for authenticated user
+message GetCurrentUserRequest {
+  // Fields to include
+  google.protobuf.FieldMask field_mask = 1;
+}
+
+message GetCurrentUserResponse {
+  // Current user details
+  alunalun.v1.entities.User user = 1;
+}
+
+// GetUserByUsernameRequest
+message GetUserByUsernameRequest {
+  // Username to look up
+  string username = 1; // required
+  
+  // Fields to include
+  google.protobuf.FieldMask field_mask = 2;
+}
+
+message GetUserByUsernameResponse {
+  // User details
+  alunalun.v1.entities.User user = 1;
+  
+  // Relationship to current user
+  UserRelationship relationship = 2;
+}
+
+// ListUsersRequest with filters
+message ListUsersRequest {
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 1;
+  
+  // Filter options
+  UserFilter filter = 2;
+  
+  // Fields to include
+  google.protobuf.FieldMask field_mask = 3;
+}
+
+message ListUsersResponse {
+  // List of users
+  repeated alunalun.v1.entities.User users = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+}
+
+// UserFilter for filtering users
+message UserFilter {
+  // Filter by status
+  repeated alunalun.v1.entities.AccountStatus status = 1;
+  
+  // Filter by role
+  repeated alunalun.v1.entities.Role roles = 2;
+  
+  // Filter by verification status
+  bool verified_only = 3;
+  
+  // Filter by creation date range
+  google.protobuf.Timestamp created_after = 4;
+  google.protobuf.Timestamp created_before = 5;
+  
+  // Filter by last active date
+  google.protobuf.Timestamp active_after = 6;
+  
+  // Filter by location
+  string location = 7;
+  
+  // Filter by email domain (for enterprise)
+  string email_domain = 8;
+}
+
+// SearchUsersRequest for user search
+message SearchUsersRequest {
+  // Search query
+  string query = 1; // required, min 2 chars
+  
+  // Search in specific fields
+  repeated SearchField search_fields = 2;
+  
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 3;
+  
+  // Filter options
+  UserFilter filter = 4;
+  
+  // Fields to include
+  google.protobuf.FieldMask field_mask = 5;
+}
+
+// SearchField specifies where to search
+enum SearchField {
+  SEARCH_FIELD_UNSPECIFIED = 0;
+  SEARCH_FIELD_USERNAME = 1;
+  SEARCH_FIELD_DISPLAY_NAME = 2;
+  SEARCH_FIELD_FULL_NAME = 3;
+  SEARCH_FIELD_BIO = 4;
+  SEARCH_FIELD_EMAIL = 5; // Admin only
+}
+
+message SearchUsersResponse {
+  // Search results
+  repeated UserSearchResult results = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+  
+  // Total matches (if available)
+  int32 total_matches = 3;
+}
+
+// UserSearchResult with relevance
+message UserSearchResult {
+  // User details
+  alunalun.v1.entities.User user = 1;
+  
+  // Relevance score (0-1)
+  float score = 2;
+  
+  // Matched fields
+  repeated string matched_fields = 3;
+  
+  // Highlighted snippets
+  map<string, string> highlights = 4;
+}
+
+// UpdateUserRequest for admin updates
+message UpdateUserRequest {
+  // User ID to update
+  string user_id = 1; // required
+  
+  // Fields to update
+  alunalun.v1.entities.User user = 2;
+  
+  // Update mask (which fields to update)
+  google.protobuf.FieldMask update_mask = 3; // required
+  
+  // Reason for update (for audit)
+  string update_reason = 4;
+}
+
+message UpdateUserResponse {
+  // Updated user
+  alunalun.v1.entities.User user = 1;
+}
+
+// UpdateProfileRequest for self-updates
+message UpdateProfileRequest {
+  // Profile fields to update
+  alunalun.v1.entities.Profile profile = 1;
+  
+  // Update mask
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+message UpdateProfileResponse {
+  // Updated user with new profile
+  alunalun.v1.entities.User user = 1;
+}
+
+// UpdateSettingsRequest
+message UpdateSettingsRequest {
+  // Settings to update
+  alunalun.v1.entities.UserSettings settings = 1;
+  
+  // Update mask
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+message UpdateSettingsResponse {
+  // Updated settings
+  alunalun.v1.entities.UserSettings settings = 1;
+}
+
+// DeleteUserRequest
+message DeleteUserRequest {
+  // User ID to delete (or current user if empty)
+  string user_id = 1;
+  
+  // Confirmation password (for self-deletion)
+  string password = 2;
+  
+  // Reason for deletion
+  string reason = 3;
+  
+  // Hard delete (admin only)
+  bool hard_delete = 4;
+}
+
+// User relationships
+
+// UserRelationship describes relationship between users
+message UserRelationship {
+  // Whether current user follows this user
+  bool following = 1;
+  
+  // Whether this user follows current user
+  bool followed_by = 2;
+  
+  // Whether users are mutual followers
+  bool mutual = 3;
+  
+  // Whether current user has blocked this user
+  bool blocked = 4;
+  
+  // Whether this user has blocked current user
+  bool blocked_by = 5;
+  
+  // When the follow relationship started
+  google.protobuf.Timestamp following_since = 6;
+}
+
+// FollowUserRequest
+message FollowUserRequest {
+  // User ID to follow
+  string user_id = 1; // required
+  
+  // Send notification to user
+  bool notify = 2;
+}
+
+message FollowUserResponse {
+  // Updated relationship status
+  UserRelationship relationship = 1;
+  
+  // Whether follow request is pending (private accounts)
+  bool pending_approval = 2;
+}
+
+// UnfollowUserRequest
+message UnfollowUserRequest {
+  // User ID to unfollow
+  string user_id = 1; // required
+}
+
+// GetFollowersRequest
+message GetFollowersRequest {
+  // User ID (or current user if empty)
+  string user_id = 1;
+  
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 2;
+  
+  // Include mutual follows only
+  bool mutual_only = 3;
+}
+
+message GetFollowersResponse {
+  // List of followers
+  repeated FollowerInfo followers = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+  
+  // Total count
+  int32 total_count = 3;
+}
+
+// FollowerInfo with metadata
+message FollowerInfo {
+  // User details
+  alunalun.v1.entities.User user = 1;
+  
+  // When they started following
+  google.protobuf.Timestamp followed_at = 2;
+  
+  // Whether it's mutual
+  bool is_mutual = 3;
+}
+
+// GetFollowingRequest
+message GetFollowingRequest {
+  // User ID (or current user if empty)
+  string user_id = 1;
+  
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 2;
+  
+  // Include mutual follows only
+  bool mutual_only = 3;
+}
+
+message GetFollowingResponse {
+  // List of following
+  repeated FollowingInfo following = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+  
+  // Total count
+  int32 total_count = 3;
+}
+
+// FollowingInfo with metadata
+message FollowingInfo {
+  // User details
+  alunalun.v1.entities.User user = 1;
+  
+  // When started following
+  google.protobuf.Timestamp following_since = 2;
+  
+  // Whether it's mutual
+  bool is_mutual = 3;
+}
+
+// BlockUserRequest
+message BlockUserRequest {
+  // User ID to block
+  string user_id = 1; // required
+  
+  // Reason for blocking (for reporting)
+  string reason = 2;
+  
+  // Report user for violation
+  bool report = 3;
+}
+
+// UnblockUserRequest
+message UnblockUserRequest {
+  // User ID to unblock
+  string user_id = 1; // required
+}
+
+// GetBlockedUsersRequest
+message GetBlockedUsersRequest {
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 1;
+}
+
+message GetBlockedUsersResponse {
+  // List of blocked users
+  repeated BlockedUserInfo blocked_users = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+}
+
+// BlockedUserInfo
+message BlockedUserInfo {
+  // User details (limited info)
+  alunalun.v1.entities.User user = 1;
+  
+  // When blocked
+  google.protobuf.Timestamp blocked_at = 2;
+  
+  // Reason for blocking
+  string reason = 3;
+}
+
+// Verification
+
+// RequestVerificationRequest
+message RequestVerificationRequest {
+  // Type of verification requested
+  enum VerificationType {
+    VERIFICATION_TYPE_UNSPECIFIED = 0;
+    VERIFICATION_TYPE_IDENTITY = 1;   // KYC verification
+    VERIFICATION_TYPE_NOTABLE = 2;    // Blue checkmark
+    VERIFICATION_TYPE_BUSINESS = 3;   // Business account
+  }
+  VerificationType type = 1;
+  
+  // Supporting documents/information
+  map<string, string> documents = 2;
+  
+  // Additional notes
+  string notes = 3;
+}
+
+message RequestVerificationResponse {
+  // Request ID for tracking
+  string request_id = 1;
+  
+  // Request status
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1;
+    STATUS_IN_REVIEW = 2;
+    STATUS_APPROVED = 3;
+    STATUS_REJECTED = 4;
+  }
+  Status status = 2;
+  
+  // Estimated review time
+  google.protobuf.Timestamp estimated_review_by = 3;
+}
+
+// Statistics
+
+// GetUserStatsRequest
+message GetUserStatsRequest {
+  // User ID (or current user if empty)
+  string user_id = 1;
+  
+  // Time period for stats
+  enum Period {
+    PERIOD_UNSPECIFIED = 0;
+    PERIOD_ALL_TIME = 1;
+    PERIOD_LAST_DAY = 2;
+    PERIOD_LAST_WEEK = 3;
+    PERIOD_LAST_MONTH = 4;
+    PERIOD_LAST_YEAR = 5;
+  }
+  Period period = 2;
+}
+
+message GetUserStatsResponse {
+  // Basic stats
+  alunalun.v1.entities.UserStats basic_stats = 1;
+  
+  // Extended statistics
+  ExtendedStats extended_stats = 2;
+}
+
+// ExtendedStats with more details
+message ExtendedStats {
+  // Engagement metrics
+  int32 total_views = 1;
+  int32 total_likes = 2;
+  int32 total_comments = 3;
+  int32 total_shares = 4;
+  
+  // Growth metrics
+  int32 new_followers_count = 5;
+  int32 lost_followers_count = 6;
+  float follower_growth_rate = 7;
+  
+  // Activity metrics
+  int32 pins_created = 8;
+  int32 pins_deleted = 9;
+  float average_engagement_rate = 10;
+  
+  // Time-based activity
+  repeated DailyActivity daily_activity = 11;
+}
+
+// DailyActivity for charts
+message DailyActivity {
+  // Date
+  google.protobuf.Timestamp date = 1;
+  
+  // Metrics for that day
+  int32 views = 2;
+  int32 likes = 3;
+  int32 comments = 4;
+  int32 new_followers = 5;
+  int32 pins_created = 6;
+}
+
+// Activity
+
+// GetUserActivityRequest
+message GetUserActivityRequest {
+  // User ID (or current user if empty)
+  string user_id = 1;
+  
+  // Activity types to include
+  repeated ActivityType activity_types = 2;
+  
+  // Pagination
+  alunalun.v1.common.PaginationRequest pagination = 3;
+}
+
+// ActivityType enum
+enum ActivityType {
+  ACTIVITY_TYPE_UNSPECIFIED = 0;
+  ACTIVITY_TYPE_PIN_CREATED = 1;
+  ACTIVITY_TYPE_PIN_LIKED = 2;
+  ACTIVITY_TYPE_PIN_COMMENTED = 3;
+  ACTIVITY_TYPE_USER_FOLLOWED = 4;
+  ACTIVITY_TYPE_PROFILE_UPDATED = 5;
+}
+
+message GetUserActivityResponse {
+  // Activity items
+  repeated ActivityItem activities = 1;
+  
+  // Pagination metadata
+  alunalun.v1.common.PaginationResponse pagination = 2;
+}
+
+// ActivityItem represents an activity
+message ActivityItem {
+  // Activity ID
+  string id = 1;
+  
+  // Activity type
+  ActivityType type = 2;
+  
+  // When it happened
+  google.protobuf.Timestamp timestamp = 3;
+  
+  // Activity details (JSON)
+  string details = 4;
+  
+  // Related entities
+  map<string, string> entities = 5; // e.g., "pin_id": "123", "user_id": "456"
+}
+
+// Bulk operations
+
+// BatchGetUsersRequest
+message BatchGetUsersRequest {
+  // User IDs to retrieve
+  repeated string user_ids = 1; // required, max 100
+  
+  // Fields to include
+  google.protobuf.FieldMask field_mask = 2;
+}
+
+message BatchGetUsersResponse {
+  // Map of user ID to user
+  map<string, alunalun.v1.entities.User> users = 1;
+  
+  // IDs that were not found
+  repeated string not_found = 2;
+}
+
+// CheckUsernameRequest
+message CheckUsernameRequest {
+  // Username to check
+  string username = 1; // required
+}
+
+message CheckUsernameResponse {
+  // Whether username is available
+  bool available = 1;
+  
+  // Reason if not available
+  string reason = 2;
+  
+  // Suggested alternatives
+  repeated string suggestions = 3;
+}
+
+// CheckEmailRequest
+message CheckEmailRequest {
+  // Email to check
+  string email = 1; // required
+}
+
+message CheckEmailResponse {
+  // Whether email is available
+  bool available = 1;
+  
+  // Reason if not available
+  string reason = 2;
+}
