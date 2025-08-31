@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package entities.v1;
+
+// Owner: feature/posts-core
+// Dependencies: none (base entity)
+
+import "google/protobuf/timestamp.proto";
+
+// === ENTITY DEFINITIONS START ===
+// Add entity messages below this line
+// This is the base entity that other features will reference
+
+message Post {
+  // Core fields will be defined by posts-core feature
+  string id = 1;
+  string type = 2;
+  string content = 3;
+  
+  // Author fields
+  string author_user_id = 4;
+  string author_session_id = 5;
+  string author_username = 6;
+  bool is_verified_author = 7;
+  
+  // Timestamps
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  
+  // Location (optional)
+  Location location = 10;
+  
+  // Media attachments
+  repeated Media media = 11;
+  
+  // Engagement counts (populated by other features)
+  int32 reaction_count = 12;
+  int32 comment_count = 13;
+  
+  // Current user's engagement
+  repeated string user_reactions = 14;
+}
+
+message Location {
+  double latitude = 1;
+  double longitude = 2;
+  string geohash = 3;
+  float accuracy_meters = 4;
+  string place_name = 5;
+  string city = 6;
+  string country_code = 7;
+}
+
+message Media {
+  string id = 1;
+  string type = 2; // "image", "video", "audio"
+  string url = 3;
+  string thumbnail_url = 4;
+  int32 width = 5;
+  int32 height = 6;
+  int32 duration_seconds = 7;
+  int32 display_order = 8;
+}
+
+// === ENTITY DEFINITIONS END ===

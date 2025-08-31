@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package service.v1;
+
+// Owner: feature/reactions-system  
+// Dependencies: entities.v1.Post from posts feature
+
+import "v1/entities/reaction.proto";
+
+service ReactionService {
+  // === RPC METHODS START ===
+  // Add service methods below this line
+  // Follow naming convention: VerbNoun
+  
+  // Reaction operations
+  // rpc AddReaction(AddReactionRequest) returns (AddReactionResponse);
+  // rpc RemoveReaction(RemoveReactionRequest) returns (RemoveReactionResponse);
+  // rpc ChangeReaction(ChangeReactionRequest) returns (ChangeReactionResponse);
+  
+  // Query operations
+  // rpc GetPostReactions(GetPostReactionsRequest) returns (GetPostReactionsResponse);
+  // rpc GetUserReactions(GetUserReactionsRequest) returns (GetUserReactionsResponse);
+  // rpc GetReactionActivity(GetReactionActivityRequest) returns (GetReactionActivityResponse);
+  
+  // === RPC METHODS END ===
+}
+
+// === MESSAGE DEFINITIONS START ===
+// Add request/response messages below this line
+
+// Example message structure:
+// message AddReactionRequest {
+//   string post_id = 1;
+//   string reaction_type = 2;
+// }
+
+// === MESSAGE DEFINITIONS END ===

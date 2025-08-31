@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package service.v1;
+
+// Owner: feature/map-pins
+// Dependencies: entities.v1.Post from posts feature
+
+import "v1/entities/post.proto";
+import "google/protobuf/timestamp.proto";
+
+service MapPinService {
+  // === RPC METHODS START ===
+  // Add service methods below this line
+  // Follow naming convention: VerbNoun
+  
+  // Get pins for current map viewport
+  // rpc GetMapPins(GetMapPinsRequest) returns (GetMapPinsResponse);
+  
+  // Get details for a specific pin
+  // rpc GetPinDetails(GetPinDetailsRequest) returns (GetPinDetailsResponse);
+  
+  // Get pins within a cluster
+  // rpc GetClusterPins(GetClusterPinsRequest) returns (GetClusterPinsResponse);
+  
+  // User preferences
+  // rpc GetMapPreferences(GetMapPreferencesRequest) returns (GetMapPreferencesResponse);
+  // rpc UpdateMapPreferences(UpdateMapPreferencesRequest) returns (UpdateMapPreferencesResponse);
+  
+  // === RPC METHODS END ===
+}
+
+// === MESSAGE DEFINITIONS START ===
+// Add request/response messages below this line
+
+// Pin types
+message SinglePin {
+  string id = 1;
+  string content_preview = 2;
+  string author_name = 3;
+  bool is_verified_author = 4;
+  google.protobuf.Timestamp created_at = 5;
+  int32 reaction_count = 6;
+  int32 comment_count = 7;
+}
+
+message ClusterPin {
+  string cluster_id = 1;
+  int32 pin_count = 2;
+  repeated string pin_ids = 3;
+  string predominant_author = 4;
+  google.protobuf.Timestamp latest_post_at = 5;
+}
+
+// === MESSAGE DEFINITIONS END ===
