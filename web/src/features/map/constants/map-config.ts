@@ -1,31 +1,28 @@
-import type { LngLatBoundsLike } from 'maplibre-gl'
-
-// Map configuration for worldwide view
+// Map configuration for Jakarta, Indonesia focus
 export const MAP_CONFIG = {
   initialView: {
-    center: [0, 20] as [number, number], // Center of world, slightly north for better land visibility
-    zoom: 2, // Show entire world
+    center: [106.8033, -6.2195] as [number, number], // Senayan, Jakarta, Indonesia
+    zoom: 12, // City-level zoom
     pitch: 0,
-    bearing: 0
+    bearing: 0,
   },
   limits: {
     minZoom: 1, // Allow zooming out to see the whole world
     maxZoom: 18, // Allow detailed street-level zoom
     // No maxBounds - allow navigation anywhere in the world
-  }
-} as const
+  },
+} as const;
 
-// Optional: Common world cities for quick navigation
-// Can be customized or passed as props
-export const WORLD_CITIES = {
-  london: { lng: -0.1276, lat: 51.5074, name: 'London' },
-  newYork: { lng: -74.0060, lat: 40.7128, name: 'New York' },
-  tokyo: { lng: 139.6503, lat: 35.6762, name: 'Tokyo' },
-  paris: { lng: 2.3522, lat: 48.8566, name: 'Paris' },
-  sydney: { lng: 151.2093, lat: -33.8688, name: 'Sydney' },
-  dubai: { lng: 55.2708, lat: 25.2048, name: 'Dubai' },
-  singapore: { lng: 103.8198, lat: 1.3521, name: 'Singapore' },
-  moscow: { lng: 37.6173, lat: 55.7558, name: 'Moscow' },
-  cairo: { lng: 31.2357, lat: 30.0444, name: 'Cairo' },
-  rio: { lng: -43.1729, lat: -22.9068, name: 'Rio de Janeiro' }
-} as const
+// Indonesian cities for quick navigation
+export const INDONESIAN_CITIES = {
+  jakarta: { lng: 106.8033, lat: -6.2195, name: "Jakarta" },
+  bandung: { lng: 107.6098, lat: -6.9147, name: "Bandung" },
+  surabaya: { lng: 112.7688, lat: -7.2504, name: "Surabaya" },
+  yogyakarta: { lng: 110.3695, lat: -7.7956, name: "Yogyakarta" },
+  semarang: { lng: 110.4203, lat: -6.9932, name: "Semarang" },
+  medan: { lng: 98.6722, lat: 3.5897, name: "Medan" },
+  makassar: { lng: 119.4327, lat: -5.1477, name: "Makassar" },
+} as const;
+
+// Export alias for backward compatibility
+export const WORLD_CITIES = INDONESIAN_CITIES;
