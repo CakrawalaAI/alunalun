@@ -1,3 +1,3 @@
-module gitub.com/ckrwl/alunalun
+module github.com/radjathaher/alunalun/api
 
-go 1.25.0
+go 1.22

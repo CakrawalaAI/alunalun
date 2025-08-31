@@ -1,8 +1,9 @@
 // Owner: feature/posts-core
 // Dependencies: none (base client)
 
-import { createClient } from '@connectrpc/connect'
-import { createConnectTransport } from '@connectrpc/connect-web'
+// Uncomment these imports when implementing the client
+// import { createClient } from '@connectrpc/connect'
+// import { createConnectTransport } from '@connectrpc/connect-web'
 
 // === SERVICE CLIENT START ===
 // Add service client initialization below this line
