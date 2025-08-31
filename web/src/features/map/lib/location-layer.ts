@@ -21,17 +21,8 @@ export class LocationLayer {
    * Initialize the location layers
    */
   private initializeLayers(): void {
-    // Add GeoJSON source for location data
-    if (!this.map.getSource(this.sourceId)) {
-      this.map.addSource(this.sourceId, {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: [],
-        },
-      });
-    }
-
+    // Source should already exist with data from updateLocation
+    
     // Add accuracy circle layer (rendered first, below the dot)
     if (!this.map.getLayer(this.circleLayerId)) {
       this.map.addLayer({
@@ -168,32 +159,52 @@ export class LocationLayer {
    * Update the user's location on the map
    */
   updateLocation(latitude: number, longitude: number, accuracy: number): void {
-    // Initialize layers if not already done
+    // Create source with initial data if not exists
     if (!this.map.getSource(this.sourceId)) {
-      this.initializeLayers();
-    }
-
-    // Update the GeoJSON data
-    const source = this.map.getSource(
-      this.sourceId,
-    ) as maplibregl.GeoJSONSource;
-    if (source) {
-      source.setData({
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            geometry: {
-              type: "Point",
-              coordinates: [longitude, latitude],
+      this.map.addSource(this.sourceId, {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: {
+                type: "Point",
+                coordinates: [longitude, latitude],
+              },
+              properties: {
+                accuracy,
+                latitude,
+              },
             },
-            properties: {
-              accuracy,
-              latitude,
-            },
-          },
-        ],
+          ],
+        },
       });
+      // Now initialize layers with data already present
+      this.initializeLayers();
+    } else {
+      // Update existing source
+      const source = this.map.getSource(
+        this.sourceId,
+      ) as maplibregl.GeoJSONSource;
+      if (source) {
+        source.setData({
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: {
+                type: "Point",
+                coordinates: [longitude, latitude],
+              },
+              properties: {
+                accuracy,
+                latitude,
+              },
+            },
+          ],
+        });
+      }
     }
 
     // Add or update popup marker (optional, for showing accuracy text)
