@@ -1,9 +1,9 @@
 import {
   createContext,
+  type ReactNode,
+  useCallback,
   useContext,
   useState,
-  useCallback,
-  type ReactNode,
 } from "react";
 import { OverlayContainer } from "./overlay-container";
 
@@ -16,11 +16,14 @@ interface Overlay {
 
 interface OverlayContextValue {
   overlays: Overlay[];
-  addOverlay: (component: ReactNode, options?: {
-    id?: string;
-    position?: { lat: number; lng: number };
-    zIndex?: number;
-  }) => string;
+  addOverlay: (
+    component: ReactNode,
+    options?: {
+      id?: string;
+      position?: { lat: number; lng: number };
+      zIndex?: number;
+    },
+  ) => string;
   removeOverlay: (id: string) => void;
   updateOverlay: (id: string, component: ReactNode) => void;
   clearOverlays: () => void;
@@ -39,35 +42,38 @@ interface OverlayProviderProps {
 export function OverlayProvider({ children }: OverlayProviderProps) {
   const [overlays, setOverlays] = useState<Overlay[]>([]);
 
-  const addOverlay = useCallback((
-    component: ReactNode,
-    options?: {
-      id?: string;
-      position?: { lat: number; lng: number };
-      zIndex?: number;
-    }
-  ) => {
-    const id = options?.id || `overlay-${Date.now()}-${Math.random()}`;
-    const newOverlay: Overlay = {
-      id,
-      component,
-      position: options?.position,
-      zIndex: options?.zIndex,
-    };
-    
-    setOverlays(prev => [...prev, newOverlay]);
-    return id;
-  }, []);
+  const addOverlay = useCallback(
+    (
+      component: ReactNode,
+      options?: {
+        id?: string;
+        position?: { lat: number; lng: number };
+        zIndex?: number;
+      },
+    ) => {
+      const id = options?.id || `overlay-${Date.now()}-${Math.random()}`;
+      const newOverlay: Overlay = {
+        id,
+        component,
+        position: options?.position,
+        zIndex: options?.zIndex,
+      };
+
+      setOverlays((prev) => [...prev, newOverlay]);
+      return id;
+    },
+    [],
+  );
 
   const removeOverlay = useCallback((id: string) => {
-    setOverlays(prev => prev.filter(overlay => overlay.id !== id));
+    setOverlays((prev) => prev.filter((overlay) => overlay.id !== id));
   }, []);
 
   const updateOverlay = useCallback((id: string, component: ReactNode) => {
-    setOverlays(prev =>
-      prev.map(overlay =>
-        overlay.id === id ? { ...overlay, component } : overlay
-      )
+    setOverlays((prev) =>
+      prev.map((overlay) =>
+        overlay.id === id ? { ...overlay, component } : overlay,
+      ),
     );
   }, []);
 
@@ -89,7 +95,7 @@ export function OverlayProvider({ children }: OverlayProviderProps) {
       <OverlayContainer>
         {overlays
           .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
-          .map(overlay => (
+          .map((overlay) => (
             <div
               key={overlay.id}
               style={{

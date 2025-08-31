@@ -43,6 +43,21 @@ export function useMapInstance(container: string | HTMLElement | null) {
         "bottom-left",
       );
 
+      // Handle missing sprites/icons gracefully
+      map.on("styleimagemissing", (e) => {
+        const id = e.id;
+
+        // Create a simple placeholder for missing icons
+        // This prevents console warnings for POI icons we don't use
+        if (!map.hasImage(id)) {
+          // Create a 1x1 transparent image as placeholder
+          const placeholder = new ImageData(1, 1);
+          map.addImage(id, placeholder, { pixelRatio: 1 });
+
+          logger.debug(`Added placeholder for missing icon: ${id}`);
+        }
+      });
+
       // Handle map load
       map.on("load", () => {
         setIsLoaded(true);

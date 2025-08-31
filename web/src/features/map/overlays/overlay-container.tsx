@@ -13,7 +13,7 @@ interface OverlayContainerProps {
 export function OverlayContainer({ children }: OverlayContainerProps) {
   return (
     <div
-      className="absolute inset-0 pointer-events-none"
+      className="pointer-events-none absolute inset-0"
       style={{
         position: "absolute",
         top: 0,

@@ -1,8 +1,8 @@
 import type { Map } from "maplibre-gl";
 import { useEffect, useRef } from "react";
 import { useGeolocation } from "../hooks/use-geolocation";
-import { getZoomFromAccuracy } from "../lib/location-utils";
 import { LocationLayer } from "../lib/location-layer";
+import { getZoomFromAccuracy } from "../lib/location-utils";
 
 interface LocateButtonProps {
   map: Map;
@@ -73,7 +73,7 @@ export function LocateButton({ map, onLocationFound }: LocateButtonProps) {
       locationLayerRef.current.updateLocation(
         position.latitude,
         position.longitude,
-        position.accuracy
+        position.accuracy,
       );
 
       // Call callback if provided

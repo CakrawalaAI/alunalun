@@ -41,29 +41,37 @@ export class LocationLayer {
         filter: ["==", "$type", "Point"],
         paint: {
           "circle-radius": [
-            "interpolate",
-            ["exponential", 2],
-            ["zoom"],
-            0,
-            0,
-            20,
+            "case",
+            ["has", "accuracy"],
             [
-              "*",
-              ["get", "accuracy"],
+              "interpolate",
+              ["exponential", 2],
+              ["zoom"],
+              0,
+              0,
+              20,
               [
-                "/",
-                1,
+                "*",
+                ["coalesce", ["get", "accuracy"], 50],
                 [
-                  "*",
-                  ["cos", ["*", ["get", "latitude"], ["/", Math.PI, 180]]],
+                  "/",
+                  1,
                   [
-                    "/",
-                    156543.03392,
-                    ["^", 2, ["zoom"]],
+                    "*",
+                    [
+                      "cos",
+                      [
+                        "*",
+                        ["coalesce", ["get", "latitude"], 0],
+                        ["/", Math.PI, 180],
+                      ],
+                    ],
+                    ["/", 156543.03392, ["^", 2, ["zoom"]]],
                   ],
                 ],
               ],
             ],
+            0, // Default radius when no accuracy data
           ],
           "circle-color": "rgba(66, 133, 244, 0.15)",
           "circle-stroke-color": "rgba(66, 133, 244, 0.3)",
@@ -81,15 +89,7 @@ export class LocationLayer {
         source: this.sourceId,
         filter: ["==", "$type", "Point"],
         paint: {
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            10,
-            5,
-            20,
-            15,
-          ],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 5, 20, 15],
           "circle-color": "rgba(66, 133, 244, 0.5)",
           "circle-opacity": 0,
           "circle-pitch-alignment": "map",
@@ -108,15 +108,7 @@ export class LocationLayer {
         source: this.sourceId,
         filter: ["==", "$type", "Point"],
         paint: {
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            10,
-            4,
-            20,
-            10,
-          ],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 4, 20, 10],
           "circle-color": "#4285F4",
           "circle-stroke-color": "#ffffff",
           "circle-stroke-width": [
@@ -143,7 +135,7 @@ export class LocationLayer {
     let growing = true;
 
     const frame = () => {
-      if (!this.map || !this.map.getLayer(this.pulseLayerId)) {
+      if (!(this.map && this.map.getLayer(this.pulseLayerId))) {
         return;
       }
 
@@ -159,15 +151,11 @@ export class LocationLayer {
         growing = true;
       }
 
-      this.map.setPaintProperty(
-        this.pulseLayerId,
-        "circle-radius",
-        radius
-      );
+      this.map.setPaintProperty(this.pulseLayerId, "circle-radius", radius);
       this.map.setPaintProperty(
         this.pulseLayerId,
         "circle-opacity",
-        Math.max(0, opacity)
+        Math.max(0, opacity),
       );
 
       requestAnimationFrame(frame);
@@ -179,18 +167,16 @@ export class LocationLayer {
   /**
    * Update the user's location on the map
    */
-  updateLocation(
-    latitude: number,
-    longitude: number,
-    accuracy: number
-  ): void {
+  updateLocation(latitude: number, longitude: number, accuracy: number): void {
     // Initialize layers if not already done
     if (!this.map.getSource(this.sourceId)) {
       this.initializeLayers();
     }
 
     // Update the GeoJSON data
-    const source = this.map.getSource(this.sourceId) as maplibregl.GeoJSONSource;
+    const source = this.map.getSource(
+      this.sourceId,
+    ) as maplibregl.GeoJSONSource;
     if (source) {
       source.setData({
         type: "FeatureCollection",
@@ -217,12 +203,13 @@ export class LocationLayer {
       // Create invisible marker just for the popup
       const el = document.createElement("div");
       el.style.display = "none";
-      
+
       this.marker = new maplibregl.Marker({ element: el })
         .setLngLat([longitude, latitude])
         .setPopup(
-          new maplibregl.Popup({ offset: 25 })
-            .setText(`Your location (±${Math.round(accuracy)}m)`)
+          new maplibregl.Popup({ offset: 25 }).setText(
+            `Your location (±${Math.round(accuracy)}m)`,
+          ),
         )
         .addTo(this.map);
     }
@@ -270,7 +257,7 @@ export function createLocationLayer(
   map: Map,
   latitude: number,
   longitude: number,
-  accuracy: number
+  accuracy: number,
 ): LocationLayer {
   const layer = new LocationLayer(map);
   layer.updateLocation(latitude, longitude, accuracy);
