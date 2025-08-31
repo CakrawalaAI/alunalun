@@ -154,7 +154,7 @@ blocks/
 5. Memory leak prevention during overlay lifecycle
 
 ### Known Issues
-- None currently
+- Console warnings "Expected value to be of type number, but found null instead" appear when loading OpenFreeMap tiles. These are harmless warnings from MapLibre's Web Workers processing vector tiles where style filter expressions expect numeric values but encounter nulls in the tile data. They don't affect functionality and can be safely ignored.
 
 ## References
 - MapLibre GL JS: https://maplibre.org/

@@ -16,6 +16,10 @@ export function useMapInstance(container: string | HTMLElement | null) {
 
     try {
       // Initialize map with worldwide view
+      // NOTE: You may see console warnings "Expected value to be of type number, but found null"
+      // These are harmless warnings from MapLibre's Web Workers processing OpenFreeMap vector tiles
+      // The warnings occur when tile data contains null values where the style expects numbers
+      // They don't affect map functionality and can be safely ignored
       const map = new maplibregl.Map({
         container,
         style: MAP_STYLE,
