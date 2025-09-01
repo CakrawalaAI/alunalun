@@ -3,9 +3,9 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { logger } from "@/common/logger/logger";
 import { useMapControls } from "../hooks/use-map-controls";
 import { useMapInstance } from "../hooks/use-map-instance";
+import { debounce, useMapState } from "../hooks/use-map-state";
 import { mapContainerStyles } from "../lib/styles";
 import { OverlayProvider } from "../overlays";
-import { debounce, useMapStore } from "../stores/use-map-store";
 import { MapUIOverlays } from "./map-ui-overlays";
 
 export interface MapRendererProps {
@@ -23,7 +23,7 @@ export function MapRenderer({
   const [containerElement, setContainerElement] =
     useState<HTMLDivElement | null>(null);
   const { map, isLoaded, error } = useMapInstance(containerElement);
-  const { setViewState } = useMapStore();
+  const { setViewState } = useMapState();
 
   // Apply map controls and keyboard shortcuts
   useMapControls(map);

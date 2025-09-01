@@ -3,13 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import { logger } from "@/common/logger/logger";
 import { getStyleUrl } from "../config/styles";
 import { MAP_CONFIG } from "../constants/map-config";
-import { useMapStore } from "../stores/use-map-store";
+import { useMapState } from "./use-map-state";
 
 export function useMapInstance(container: string | HTMLElement | null) {
   const mapRef = useRef<Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { loadSavedState } = useMapStore();
+  const { loadSavedState } = useMapState();
 
   useEffect(() => {
     if (!container) {

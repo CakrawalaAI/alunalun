@@ -1,5 +1,5 @@
-import { MapRenderer } from "@/features/map";
+import { MapInteractive } from "@/blocks/map-interactive";
 
 export default function HomePage() {
-  return <MapRenderer showControls={true} />;
+  return <MapInteractive />;
 }

@@ -8,6 +8,7 @@ export const mapContainerStyles = {
   width: "100vw",
   height: "100vh",
   overflow: "hidden",
+  zIndex: 0, // Base layer - everything else appears above
 };
 
 // Control panel styles
