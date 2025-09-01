@@ -7,6 +7,7 @@ export { LocateButton } from "./components/locate-button";
 export { LocateControl } from "./components/locate-control";
 export type { MapBaseProps } from "./components/map-base";
 export { MapBase } from "./components/map-base";
+export { MapControlPanel } from "./components/map-control-panel";
 export { MapControls } from "./components/map-controls";
 export type { MapRendererProps } from "./components/map-renderer";
 // Legacy components (for backward compatibility)

@@ -1,9 +1,9 @@
 import type { Map } from "maplibre-gl";
 import { useEffect, useRef } from "react";
+import { cn } from "@/common/lib/utils";
 import { useGeolocation } from "../hooks/use-geolocation";
 import { LocationLayer } from "../lib/location-layer";
 import { getZoomFromAccuracy } from "../lib/location-utils";
-import { controlButtonStyles } from "../lib/styles";
 
 interface LocateControlProps {
   map: Map;
@@ -108,17 +108,12 @@ export function LocateControl({ map, onLocationFound }: LocateControlProps) {
         type="button"
         onClick={handleClick}
         disabled={isLocating}
-        style={{
-          ...controlButtonStyles,
-          backgroundColor: "white",
-          borderRadius: "4px",
-          padding: "8px",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          cursor: isLocating ? "wait" : "pointer",
-          color: error ? "#dc2626" : "#374151",
-          position: "relative",
-          zIndex: 10,
-        }}
+        className={cn(
+          "flex items-center justify-center w-11 h-11",
+          "hover:bg-gray-100/80 transition-colors",
+          isLocating && "cursor-wait animate-pulse",
+          error ? "text-red-500" : "text-gray-700"
+        )}
         title={
           error
             ? `Error: ${error.message}. Click to retry`

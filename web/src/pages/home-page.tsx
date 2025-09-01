@@ -1,5 +1,5 @@
-import { MapInteractive } from "@/blocks/map-interactive";
+import { Map } from "@/blocks/map";
 
 export default function HomePage() {
-  return <MapInteractive />;
+  return <Map />;
 }

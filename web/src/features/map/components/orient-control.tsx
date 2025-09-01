@@ -1,6 +1,6 @@
 import type { Map } from "maplibre-gl";
+import { cn } from "@/common/lib/utils";
 import { useMapOrientation } from "../hooks/use-map-orientation";
-import { controlButtonStyles } from "../lib/styles";
 
 interface OrientControlProps {
   map: Map;
@@ -35,17 +35,10 @@ export function OrientControl({ map }: OrientControlProps) {
     <button
       type="button"
       onClick={resetOrientation}
-      style={{
-        ...controlButtonStyles,
-        backgroundColor: "white",
-        borderRadius: "4px",
-        padding: "8px",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-        opacity: isRotated ? 1 : 0.7,
-        cursor: "pointer",
-        position: "relative",
-        zIndex: 10,
-      }}
+      className={cn(
+        "flex items-center justify-center w-10 h-10 hover:bg-gray-50",
+        !isRotated && "opacity-70"
+      )}
       title={`Reset orientation (bearing: ${bearing.toFixed(0)}°, pitch: ${pitch.toFixed(0)}°)`}
       aria-label="Reset map orientation"
     >

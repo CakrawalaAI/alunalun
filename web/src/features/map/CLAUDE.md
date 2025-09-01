@@ -156,6 +156,81 @@ blocks/
 ### Known Issues
 - Console warnings "Expected value to be of type number, but found null instead" appear when loading OpenFreeMap tiles. These are harmless warnings from MapLibre's Web Workers processing vector tiles where style filter expressions expect numeric values but encounter nulls in the tile data. They don't affect functionality and can be safely ignored.
 
+## Troubleshooting: WebGL Canvas Pointer Events
+
+### Problem
+MapLibre GL's canvas element intercepts all pointer events, making overlaid DOM controls (buttons, panels) unclickable even when they appear visually on top. This is a fundamental issue with WebGL/Canvas layers that capture mouse events for map interactions (pan, zoom, rotate).
+
+### Symptoms
+- Controls appear visually on top but can't be clicked
+- Playwright/browser automation shows "canvas intercepts pointer events" errors
+- Z-index alone doesn't solve the problem
+- Mouse hover effects may work but clicks don't register
+
+### Root Cause
+1. **MapLibre's event system** - The WebGL canvas has its own event handling for map interactions
+2. **Event bubbling** - Canvas captures events before they reach DOM elements
+3. **Stacking context conflicts** - Complex component hierarchies can create unexpected stacking contexts
+
+### Solution
+
+#### 1. Use Extreme Z-Index Values
+```tsx
+<div 
+  className="absolute top-4 right-4 z-[999999]"
+  style={{ 
+    zIndex: 999999,
+    pointerEvents: 'auto'
+  }}
+>
+  {/* Controls here */}
+</div>
+```
+
+#### 2. Simplify DOM Structure
+- Remove unnecessary wrapper components
+- Implement controls directly inline when possible
+- Avoid deep component nesting for controls
+
+#### 3. Explicit Pointer Events Management
+```tsx
+// Container: pointer-events-none to pass through
+<div className="absolute inset-0 pointer-events-none z-10">
+  // Control panel: pointer-events-auto to capture
+  <div className="pointer-events-auto">
+    {/* Buttons here */}
+  </div>
+</div>
+```
+
+#### 4. Create New Stacking Context
+```tsx
+className={cn(
+  "isolate", // Creates new stacking context
+  "relative z-[999999]"
+)}
+```
+
+### Best Practices
+1. **Test with browser DevTools** - Use element inspector to verify z-index stacking
+2. **Add debug logging** - Track mouse events to identify where they're being captured
+3. **Use Playwright for testing** - Automated tests reveal pointer-event issues clearly
+4. **Keep controls outside map container** when possible
+5. **Use inline styles for critical z-index** - Ensures specificity
+
+### Example Working Structure
+```tsx
+<div className="relative h-full w-full">
+  {/* Map at base level */}
+  <MapBase className="h-full w-full" />
+  
+  {/* Controls at top level with extreme z-index */}
+  <div style={{ position: 'absolute', zIndex: 999999 }}>
+    <button onClick={handleClick}>Works!</button>
+  </div>
+</div>
+```
+
 ## References
 - MapLibre GL JS: https://maplibre.org/
 - OpenFreeMap tiles: https://openfreemap.org/

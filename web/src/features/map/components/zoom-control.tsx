@@ -1,6 +1,6 @@
 import type { Map } from "maplibre-gl";
+import { cn } from "@/common/lib/utils";
 import { useMapZoom } from "../hooks/use-map-zoom";
-import { controlButtonStyles } from "../lib/styles";
 
 interface ZoomControlProps {
   map: Map;
@@ -12,28 +12,15 @@ export function ZoomControl({ map, showZoomLevel = false }: ZoomControlProps) {
     useMapZoom(map);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "4px",
-        backgroundColor: "white",
-        borderRadius: "4px",
-        padding: "4px",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-        position: "relative",
-        zIndex: 10,
-      }}
-    >
+    <>
       <button
         type="button"
         onClick={zoomIn}
         disabled={!canZoomIn}
-        style={{
-          ...controlButtonStyles,
-          opacity: canZoomIn ? 1 : 0.5,
-          cursor: canZoomIn ? "pointer" : "not-allowed",
-        }}
+        className={cn(
+          "flex items-center justify-center w-10 h-10 hover:bg-gray-50 border-b border-gray-200",
+          !canZoomIn && "opacity-50 cursor-not-allowed"
+        )}
         title="Zoom in"
         aria-label="Zoom in"
       >
@@ -51,15 +38,7 @@ export function ZoomControl({ map, showZoomLevel = false }: ZoomControlProps) {
       </button>
 
       {showZoomLevel && (
-        <div
-          style={{
-            padding: "4px",
-            fontSize: "11px",
-            textAlign: "center",
-            color: "#666",
-            userSelect: "none",
-          }}
-        >
+        <div className="flex items-center justify-center h-8 text-xs text-gray-600 font-medium border-b border-gray-200 select-none">
           {currentZoom.toFixed(1)}
         </div>
       )}
@@ -68,11 +47,10 @@ export function ZoomControl({ map, showZoomLevel = false }: ZoomControlProps) {
         type="button"
         onClick={zoomOut}
         disabled={!canZoomOut}
-        style={{
-          ...controlButtonStyles,
-          opacity: canZoomOut ? 1 : 0.5,
-          cursor: canZoomOut ? "pointer" : "not-allowed",
-        }}
+        className={cn(
+          "flex items-center justify-center w-10 h-10 hover:bg-gray-50 border-b border-gray-200",
+          !canZoomOut && "opacity-50 cursor-not-allowed"
+        )}
         title="Zoom out"
         aria-label="Zoom out"
       >
@@ -87,6 +65,6 @@ export function ZoomControl({ map, showZoomLevel = false }: ZoomControlProps) {
           <line x1="5" y1="10" x2="15" y2="10" />
         </svg>
       </button>
-    </div>
+    </>
   );
 }
