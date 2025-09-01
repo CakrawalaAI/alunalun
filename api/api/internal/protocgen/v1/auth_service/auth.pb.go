@@ -4,10 +4,10 @@
 // 	protoc        (unknown)
 // source: v1/service/auth.proto
 
-package servicev1
+package auth_servicev1
 
 import (
-	entities "github.com/ckrwl/alunalun/api/gen/api/v1/entities"
+	entities "github.com/radjathaher/alunalun/api/internal/protocgen/v1/entities"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	_ "google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -443,7 +443,7 @@ var File_v1_service_auth_proto protoreflect.FileDescriptor
 
 const file_v1_service_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x15v1/service/auth.proto\x12\x0eapi.v1.service\x1a\x16v1/entities/user.proto\x1a google/protobuf/field_mask.proto\"2\n" +
+	"\x15v1/service/auth.proto\x12\x13api.v1.service.auth\x1a\x16v1/entities/user.proto\x1a google/protobuf/field_mask.proto\"2\n" +
 	"\x14CheckUsernameRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\"O\n" +
 	"\x15CheckUsernameResponse\x12\x1c\n" +
@@ -471,12 +471,12 @@ const file_v1_service_auth_proto_rawDesc = "" +
 	"\x13RefreshTokenRequest\x12#\n" +
 	"\rexpired_token\x18\x01 \x01(\tR\fexpiredToken\",\n" +
 	"\x14RefreshTokenResponse\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token2\xff\x02\n" +
-	"\vAuthService\x12\\\n" +
-	"\rCheckUsername\x12$.api.v1.service.CheckUsernameRequest\x1a%.api.v1.service.CheckUsernameResponse\x12\\\n" +
-	"\rInitAnonymous\x12$.api.v1.service.InitAnonymousRequest\x1a%.api.v1.service.InitAnonymousResponse\x12Y\n" +
-	"\fAuthenticate\x12#.api.v1.service.AuthenticateRequest\x1a$.api.v1.service.AuthenticateResponse\x12Y\n" +
-	"\fRefreshToken\x12#.api.v1.service.RefreshTokenRequest\x1a$.api.v1.service.RefreshTokenResponseB<Z:github.com/ckrwl/alunalun/api/gen/api/v1/service;servicev1b\x06proto3"
+	"\x05token\x18\x01 \x01(\tR\x05token2\xa7\x03\n" +
+	"\vAuthService\x12f\n" +
+	"\rCheckUsername\x12).api.v1.service.auth.CheckUsernameRequest\x1a*.api.v1.service.auth.CheckUsernameResponse\x12f\n" +
+	"\rInitAnonymous\x12).api.v1.service.auth.InitAnonymousRequest\x1a*.api.v1.service.auth.InitAnonymousResponse\x12c\n" +
+	"\fAuthenticate\x12(.api.v1.service.auth.AuthenticateRequest\x1a).api.v1.service.auth.AuthenticateResponse\x12c\n" +
+	"\fRefreshToken\x12(.api.v1.service.auth.RefreshTokenRequest\x1a).api.v1.service.auth.RefreshTokenResponseBWZUgithub.com/radjathaher/alunalun/api/internal/protocgen/v1/auth_service;auth_servicev1b\x06proto3"
 
 var (
 	file_v1_service_auth_proto_rawDescOnce sync.Once
@@ -492,26 +492,26 @@ func file_v1_service_auth_proto_rawDescGZIP() []byte {
 
 var file_v1_service_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_v1_service_auth_proto_goTypes = []any{
-	(*CheckUsernameRequest)(nil),  // 0: api.v1.service.CheckUsernameRequest
-	(*CheckUsernameResponse)(nil), // 1: api.v1.service.CheckUsernameResponse
-	(*InitAnonymousRequest)(nil),  // 2: api.v1.service.InitAnonymousRequest
-	(*InitAnonymousResponse)(nil), // 3: api.v1.service.InitAnonymousResponse
-	(*AuthenticateRequest)(nil),   // 4: api.v1.service.AuthenticateRequest
-	(*AuthenticateResponse)(nil),  // 5: api.v1.service.AuthenticateResponse
-	(*RefreshTokenRequest)(nil),   // 6: api.v1.service.RefreshTokenRequest
-	(*RefreshTokenResponse)(nil),  // 7: api.v1.service.RefreshTokenResponse
+	(*CheckUsernameRequest)(nil),  // 0: api.v1.service.auth.CheckUsernameRequest
+	(*CheckUsernameResponse)(nil), // 1: api.v1.service.auth.CheckUsernameResponse
+	(*InitAnonymousRequest)(nil),  // 2: api.v1.service.auth.InitAnonymousRequest
+	(*InitAnonymousResponse)(nil), // 3: api.v1.service.auth.InitAnonymousResponse
+	(*AuthenticateRequest)(nil),   // 4: api.v1.service.auth.AuthenticateRequest
+	(*AuthenticateResponse)(nil),  // 5: api.v1.service.auth.AuthenticateResponse
+	(*RefreshTokenRequest)(nil),   // 6: api.v1.service.auth.RefreshTokenRequest
+	(*RefreshTokenResponse)(nil),  // 7: api.v1.service.auth.RefreshTokenResponse
 	(*entities.User)(nil),         // 8: api.v1.entities.User
 }
 var file_v1_service_auth_proto_depIdxs = []int32{
-	8, // 0: api.v1.service.AuthenticateResponse.user:type_name -> api.v1.entities.User
-	0, // 1: api.v1.service.AuthService.CheckUsername:input_type -> api.v1.service.CheckUsernameRequest
-	2, // 2: api.v1.service.AuthService.InitAnonymous:input_type -> api.v1.service.InitAnonymousRequest
-	4, // 3: api.v1.service.AuthService.Authenticate:input_type -> api.v1.service.AuthenticateRequest
-	6, // 4: api.v1.service.AuthService.RefreshToken:input_type -> api.v1.service.RefreshTokenRequest
-	1, // 5: api.v1.service.AuthService.CheckUsername:output_type -> api.v1.service.CheckUsernameResponse
-	3, // 6: api.v1.service.AuthService.InitAnonymous:output_type -> api.v1.service.InitAnonymousResponse
-	5, // 7: api.v1.service.AuthService.Authenticate:output_type -> api.v1.service.AuthenticateResponse
-	7, // 8: api.v1.service.AuthService.RefreshToken:output_type -> api.v1.service.RefreshTokenResponse
+	8, // 0: api.v1.service.auth.AuthenticateResponse.user:type_name -> api.v1.entities.User
+	0, // 1: api.v1.service.auth.AuthService.CheckUsername:input_type -> api.v1.service.auth.CheckUsernameRequest
+	2, // 2: api.v1.service.auth.AuthService.InitAnonymous:input_type -> api.v1.service.auth.InitAnonymousRequest
+	4, // 3: api.v1.service.auth.AuthService.Authenticate:input_type -> api.v1.service.auth.AuthenticateRequest
+	6, // 4: api.v1.service.auth.AuthService.RefreshToken:input_type -> api.v1.service.auth.RefreshTokenRequest
+	1, // 5: api.v1.service.auth.AuthService.CheckUsername:output_type -> api.v1.service.auth.CheckUsernameResponse
+	3, // 6: api.v1.service.auth.AuthService.InitAnonymous:output_type -> api.v1.service.auth.InitAnonymousResponse
+	5, // 7: api.v1.service.auth.AuthService.Authenticate:output_type -> api.v1.service.auth.AuthenticateResponse
+	7, // 8: api.v1.service.auth.AuthService.RefreshToken:output_type -> api.v1.service.auth.RefreshTokenResponse
 	5, // [5:9] is the sub-list for method output_type
 	1, // [1:5] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name

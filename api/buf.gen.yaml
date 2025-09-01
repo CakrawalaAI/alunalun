@@ -1,23 +1,19 @@
-# Buf code generation configuration for ConnectRPC
-# Run with: buf generate
-
 version: v2
 plugins:
-  # Go generation for backend
-  - remote: buf.build/protocolbuffers/go
-    out: internal/protocgen
+  - local: protoc-gen-go
+    out: .
     opt:
-      - paths=source_relative
-  
-  # ConnectRPC Go generation
-  - remote: buf.build/connectrpc/go
-    out: internal/protocgen
+      - module=github.com/radjathaher/alunalun
+  - local: protoc-gen-connect-go
+    out: .
     opt:
-      - paths=source_relative
-  
-  # TypeScript/JavaScript generation for frontend (Connect v2)
-  # This generates both the messages AND service descriptors
-  - remote: buf.build/bufbuild/es:v2.7.0
-    out: ../web/src/common/connectrpc
+      - module=github.com/radjathaher/alunalun
+  - local: protoc-gen-es
+    out: ../web/src/common/services/connectrpc
     opt:
       - target=ts
+    include_imports: true
+  - local: protoc-gen-connect-query
+    out: ../web/src/common/services/connectrpc
+    opt: target=ts
+

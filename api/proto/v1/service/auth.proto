@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-package api.v1.service;
+package api.v1.service.auth;
 
 import "v1/entities/user.proto";
 import "google/protobuf/field_mask.proto";
 
-option go_package = "github.com/ckrwl/alunalun/api/gen/api/v1/service;servicev1";
+option go_package = "github.com/radjathaher/alunalun/api/internal/protocgen/v1/auth_service;auth_servicev1";
 
 // AuthService handles authentication flows
 service AuthService {
