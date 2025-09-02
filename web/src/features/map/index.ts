@@ -1,4 +1,8 @@
 // Core map components
+export { MapCanvas } from "./components/map-canvas";
+export type { MapCanvasProps } from "./components/map-canvas";
+export { ControlPanel } from "./components/control-panel";
+export type { ControlPanelProps } from "./components/control-panel";
 
 export { CompassButton } from "./components/compass-button";
 export { CoordinatesDisplay } from "./components/coordinates-display";
@@ -33,6 +37,8 @@ export {
 } from "./hooks/use-map-center";
 export { useMapControls } from "./hooks/use-map-controls";
 // Hooks
+export { useMapOrchestrator } from "./hooks/use-map-orchestrator";
+export { useLocationTracking } from "./hooks/use-location-tracking";
 export { useMapInstance } from "./hooks/use-map-instance";
 export { useMapOrientation } from "./hooks/use-map-orientation";
 export type { MapViewState } from "./hooks/use-map-state";

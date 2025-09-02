@@ -1,133 +1,58 @@
-import type { Map } from "maplibre-gl";
-import { useEffect } from "react";
-import { MAP_CONFIG } from "../constants/map-config";
+import type { Map as MapLibreMap } from "maplibre-gl";
+import { useCallback } from "react";
+import { logger } from "@/common/logger/logger";
+import { useMapZoom } from "./use-map-zoom";
+import { useMapOrientation } from "./use-map-orientation";
 
-export function useMapControls(map: Map | null) {
-  useEffect(() => {
-    if (!map) {
-      return;
-    }
+/**
+ * Hook that encapsulates all map control logic.
+ * Combines zoom and orientation controls with debug logging.
+ * Returns a clean interface for UI components.
+ */
+export function useMapControls(map: MapLibreMap | null) {
+  // Compose primitive hooks
+  const zoom = useMapZoom(map!);
+  const orientation = useMapOrientation(map!);
 
-    // Fly to DPR Jakarta view
-    const flyToJakarta = () => {
-      map.flyTo({
-        center: MAP_CONFIG.initialView.center,
-        zoom: MAP_CONFIG.initialView.zoom,
-        duration: 2000,
-        essential: true,
-      });
-    };
+  // Encapsulate all handlers with logging
+  const handleZoomIn = useCallback(() => {
+    logger.debug("Zoom in clicked", { 
+      currentZoom: zoom.currentZoom, 
+      canZoomIn: zoom.canZoomIn 
+    });
+    zoom.zoomIn();
+  }, [zoom]);
 
-    // Reset orientation (bearing and pitch)
-    const resetOrientation = () => {
-      map.easeTo({
-        bearing: 0,
-        pitch: 0,
-        duration: 1000,
-        essential: true,
-      });
-    };
+  const handleZoomOut = useCallback(() => {
+    logger.debug("Zoom out clicked", { 
+      currentZoom: zoom.currentZoom, 
+      canZoomOut: zoom.canZoomOut 
+    });
+    zoom.zoomOut();
+  }, [zoom]);
 
-    // Zoom controls
-    const zoomIn = () => {
-      const currentZoom = map.getZoom();
-      if (currentZoom < MAP_CONFIG.limits.maxZoom) {
-        map.zoomTo(Math.min(currentZoom + 1, MAP_CONFIG.limits.maxZoom), {
-          duration: 300,
-          essential: true,
-        });
-      }
-    };
+  const handleResetOrientation = useCallback(() => {
+    logger.debug("Reset orientation clicked", { 
+      bearing: orientation.bearing, 
+      pitch: orientation.pitch 
+    });
+    orientation.resetOrientation();
+  }, [orientation]);
 
-    const zoomOut = () => {
-      const currentZoom = map.getZoom();
-      if (currentZoom > MAP_CONFIG.limits.minZoom) {
-        map.zoomTo(Math.max(currentZoom - 1, MAP_CONFIG.limits.minZoom), {
-          duration: 300,
-          essential: true,
-        });
-      }
-    };
-
-    // Pitch controls (3D tilt)
-    const increasePitch = () => {
-      const currentPitch = map.getPitch();
-      if (currentPitch < 85) {
-        map.easeTo({
-          pitch: Math.min(currentPitch + 10, 85),
-          duration: 300,
-          essential: true,
-        });
-      }
-    };
-
-    const decreasePitch = () => {
-      const currentPitch = map.getPitch();
-      if (currentPitch > 0) {
-        map.easeTo({
-          pitch: Math.max(currentPitch - 10, 0),
-          duration: 300,
-          essential: true,
-        });
-      }
-    };
-
-    // Add keyboard shortcuts
-    const handleKeyPress = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
-
-      switch (e.key) {
-        case "h":
-        case "H":
-          // H for Jakarta (home city)
-          flyToJakarta();
-          break;
-        case "r":
-        case "R":
-          // R for reset orientation
-          resetOrientation();
-          break;
-        case "=":
-        case "+":
-          // + for zoom in
-          zoomIn();
-          break;
-        case "-":
-        case "_":
-          // - for zoom out
-          zoomOut();
-          break;
-        case "p":
-        case "P":
-          // P for increase pitch (tilt up)
-          increasePitch();
-          break;
-        case "l":
-        case "L":
-          // L for decrease pitch (level/flat)
-          decreasePitch();
-          break;
-        case "3":
-          // 3 for 3D view (set pitch to 45°)
-          map.easeTo({
-            pitch: 45,
-            duration: 500,
-            essential: true,
-          });
-          break;
-      }
-    };
-
-    window.addEventListener("keypress", handleKeyPress);
-
-    return () => {
-      window.removeEventListener("keypress", handleKeyPress);
-    };
-  }, [map]);
+  // Return clean interface for components
+  return {
+    zoom: {
+      current: zoom.currentZoom,
+      canZoomIn: zoom.canZoomIn,
+      canZoomOut: zoom.canZoomOut,
+      onZoomIn: handleZoomIn,
+      onZoomOut: handleZoomOut,
+    },
+    orientation: {
+      bearing: orientation.bearing,
+      pitch: orientation.pitch,
+      isRotated: orientation.bearing !== 0 || orientation.pitch !== 0,
+      onReset: handleResetOrientation,
+    },
+  };
 }

@@ -18,7 +18,7 @@ import {
   file_google_protobuf_empty,
   file_google_protobuf_field_mask,
 } from "@bufbuild/protobuf/wkt";
-import type { AuthProvider, User, UserProfile } from "../entities/user_pb";
+import type { UserAuthProvider as AuthProvider, User, UserProfile } from "../entities/user_pb";
 import { file_v1_entities_user } from "../entities/user_pb";
 
 /**
