@@ -10,7 +10,8 @@ help:
 	@echo "  make proto        - Generate proto files"
 	@echo "  make sqlc         - Generate SQLC code"
 	@echo "  make migrate      - Run database migrations"
-	@echo "  make seed         - Seed database with test data"
+	@echo "  make setup-dev    - Setup development database (create, migrate, seed)"
+	@echo "  make reset-dev    - Reset development database to clean slate"
 
 # === DEVELOPMENT COMMANDS START ===
 
@@ -79,6 +80,16 @@ migrate:
 migrate-down:
 	@echo "Rolling back last migration..."
 	# Add rollback command here
+
+.PHONY: setup-dev
+setup-dev:
+	@echo "Setting up development database..."
+	@cd api && go run scripts/setup.go
+
+.PHONY: reset-dev
+reset-dev:
+	@echo "Resetting development database..."
+	@cd api && go run scripts/setup.go --reset
 
 # [POSTS-SEED-START]
 # Owner: feature/posts-core
