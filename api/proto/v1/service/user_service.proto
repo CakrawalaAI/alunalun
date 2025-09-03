@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package api.v1.service;
+
+import "v1/entities/user.proto";
+
+option go_package = "github.com/radjathaher/alunalun/api/internal/protocgen/v1/service;servicev1";
+
+// UserService handles user-related operations
+service UserService {
+  // Get or create anonymous user
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
+  
+  // Convert anonymous to registered user
+  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
+  
+  // Get user by ID
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+}
+
+// GetCurrentUserRequest - empty, uses session/JWT context
+message GetCurrentUserRequest {}
+
+message GetCurrentUserResponse {
+  api.v1.entities.User user = 1;
+  string access_token = 2;        // JWT for anonymous/registered user
+}
+
+message RegisterUserRequest {
+  string email = 1;
+  string username = 2;
+  string password = 3;             // For password provider
+}
+
+message RegisterUserResponse {
+  api.v1.entities.User user = 1;
+  string access_token = 2;         // New JWT with registered user claims
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  api.v1.entities.User user = 1;
+}

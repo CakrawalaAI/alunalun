@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package api.v1.service;
+
+import "v1/entities/pin.proto";
+
+option go_package = "github.com/radjathaher/alunalun/api/internal/protocgen/v1/service;servicev1";
+
+// PinService handles pin and comment operations
+service PinService {
+  // Create a new pin on the map
+  rpc CreatePin(CreatePinRequest) returns (CreatePinResponse);
+  
+  // Get pins within a geographic area
+  rpc ListPins(ListPinsRequest) returns (ListPinsResponse);
+  
+  // Get a single pin with its comments
+  rpc GetPin(GetPinRequest) returns (GetPinResponse);
+  
+  // Add a comment to a pin
+  rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+}
+
+message CreatePinRequest {
+  string content = 1;                    // Pin title/description
+  api.v1.entities.Location location = 2; // Geographic location
+}
+
+message CreatePinResponse {
+  api.v1.entities.Pin pin = 1;
+}
+
+message ListPinsRequest {
+  // Bounding box coordinates
+  double north = 1;  // Max latitude
+  double south = 2;  // Min latitude
+  double east = 3;   // Max longitude
+  double west = 4;   // Min longitude
+  
+  optional int32 limit = 5;   // Max results (default: 50)
+  optional string cursor = 6;  // Pagination cursor
+}
+
+message ListPinsResponse {
+  repeated api.v1.entities.Pin pins = 1;
+  optional string next_cursor = 2;  // Cursor for next page
+}
+
+message GetPinRequest {
+  string pin_id = 1;
+}
+
+message GetPinResponse {
+  api.v1.entities.Pin pin = 1;
+  repeated api.v1.entities.Comment comments = 2;  // All comments for this pin
+}
+
+message AddCommentRequest {
+  string pin_id = 1;                // The pin to comment on
+  string content = 2;                // Comment text
+  optional string parent_id = 3;    // Parent comment ID for replies
+}
+
+message AddCommentResponse {
+  api.v1.entities.Comment comment = 1;
+}

@@ -3,11 +3,11 @@ plugins:
   - local: protoc-gen-go
     out: .
     opt:
-      - module=github.com/radjathaher/alunalun
+      - module=github.com/radjathaher/alunalun/api
   - local: protoc-gen-connect-go
     out: .
     opt:
-      - module=github.com/radjathaher/alunalun
+      - module=github.com/radjathaher/alunalun/api
   - local: protoc-gen-es
     out: ../web/src/common/services/connectrpc
     opt:

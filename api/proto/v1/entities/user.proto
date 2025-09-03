@@ -12,16 +12,12 @@ enum UserStatus {
   USER_STATUS_PENDING = 3;
 }
 
-// User represents a user in the system
+// User represents a user in the system (matches database schema)
 message User {
   string id = 1;
-  string email = 2;
-  string username = 3;
-  string first_name = 4;
-  string last_name = 5;
-  string avatar_url = 6;
-  UserStatus status = 7;
-  int64 email_verified_at = 8; // Unix timestamp
-  int64 created_at = 9; // Unix timestamp
-  int64 updated_at = 10; // Unix timestamp
+  optional string email = 2;      // NULL for anonymous users
+  string username = 3;             // "anon-xyz" for anonymous, regular for registered
+  map<string, string> metadata = 4; // Flexible key-value metadata
+  int64 created_at = 5;            // Unix timestamp
+  int64 updated_at = 6;            // Unix timestamp
 }

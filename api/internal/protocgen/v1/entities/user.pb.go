@@ -9,7 +9,6 @@ package entitiesv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,16 +21,68 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// User represents an authenticated user
+// UserStatus represents the status of a user
+type UserStatus int32
+
+const (
+	UserStatus_USER_STATUS_UNSPECIFIED UserStatus = 0
+	UserStatus_USER_STATUS_ACTIVE      UserStatus = 1
+	UserStatus_USER_STATUS_DISABLED    UserStatus = 2
+	UserStatus_USER_STATUS_PENDING     UserStatus = 3
+)
+
+// Enum value maps for UserStatus.
+var (
+	UserStatus_name = map[int32]string{
+		0: "USER_STATUS_UNSPECIFIED",
+		1: "USER_STATUS_ACTIVE",
+		2: "USER_STATUS_DISABLED",
+		3: "USER_STATUS_PENDING",
+	}
+	UserStatus_value = map[string]int32{
+		"USER_STATUS_UNSPECIFIED": 0,
+		"USER_STATUS_ACTIVE":      1,
+		"USER_STATUS_DISABLED":    2,
+		"USER_STATUS_PENDING":     3,
+	}
+)
+
+func (x UserStatus) Enum() *UserStatus {
+	p := new(UserStatus)
+	*p = x
+	return p
+}
+
+func (x UserStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (UserStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_v1_entities_user_proto_enumTypes[0].Descriptor()
+}
+
+func (UserStatus) Type() protoreflect.EnumType {
+	return &file_v1_entities_user_proto_enumTypes[0]
+}
+
+func (x UserStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use UserStatus.Descriptor instead.
+func (UserStatus) EnumDescriptor() ([]byte, []int) {
+	return file_v1_entities_user_proto_rawDescGZIP(), []int{0}
+}
+
+// User represents a user in the system (matches database schema)
 type User struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // UUID
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"` // From usernames table
-	DisplayName   *string                `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3,oneof" json:"display_name,omitempty"`
-	AvatarUrl     *string                `protobuf:"bytes,5,opt,name=avatar_url,json=avatarUrl,proto3,oneof" json:"avatar_url,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Email         *string                `protobuf:"bytes,2,opt,name=email,proto3,oneof" json:"email,omitempty"`                                                                           // NULL for anonymous users
+	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`                                                                           // "anon-xyz" for anonymous, regular for registered
+	Metadata      map[string]string      `protobuf:"bytes,4,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Flexible key-value metadata
+	CreatedAt     int64                  `protobuf:"varint,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`                                                       // Unix timestamp
+	UpdatedAt     int64                  `protobuf:"varint,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`                                                       // Unix timestamp
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -74,8 +125,8 @@ func (x *User) GetId() string {
 }
 
 func (x *User) GetEmail() string {
-	if x != nil {
-		return x.Email
+	if x != nil && x.Email != nil {
+		return *x.Email
 	}
 	return ""
 }
@@ -87,234 +138,51 @@ func (x *User) GetUsername() string {
 	return ""
 }
 
-func (x *User) GetDisplayName() string {
-	if x != nil && x.DisplayName != nil {
-		return *x.DisplayName
-	}
-	return ""
-}
-
-func (x *User) GetAvatarUrl() string {
-	if x != nil && x.AvatarUrl != nil {
-		return *x.AvatarUrl
-	}
-	return ""
-}
-
-func (x *User) GetCreatedAt() *timestamppb.Timestamp {
+func (x *User) GetMetadata() map[string]string {
 	if x != nil {
-		return x.CreatedAt
+		return x.Metadata
 	}
 	return nil
 }
 
-func (x *User) GetUpdatedAt() *timestamppb.Timestamp {
+func (x *User) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+func (x *User) GetUpdatedAt() int64 {
 	if x != nil {
 		return x.UpdatedAt
 	}
-	return nil
-}
-
-// UserProfile represents public profile information
-type UserProfile struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
-	DisplayName   *string                `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3,oneof" json:"display_name,omitempty"`
-	AvatarUrl     *string                `protobuf:"bytes,4,opt,name=avatar_url,json=avatarUrl,proto3,oneof" json:"avatar_url,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UserProfile) Reset() {
-	*x = UserProfile{}
-	mi := &file_v1_entities_user_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UserProfile) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UserProfile) ProtoMessage() {}
-
-func (x *UserProfile) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_entities_user_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UserProfile.ProtoReflect.Descriptor instead.
-func (*UserProfile) Descriptor() ([]byte, []int) {
-	return file_v1_entities_user_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *UserProfile) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *UserProfile) GetUsername() string {
-	if x != nil {
-		return x.Username
-	}
-	return ""
-}
-
-func (x *UserProfile) GetDisplayName() string {
-	if x != nil && x.DisplayName != nil {
-		return *x.DisplayName
-	}
-	return ""
-}
-
-func (x *UserProfile) GetAvatarUrl() string {
-	if x != nil && x.AvatarUrl != nil {
-		return *x.AvatarUrl
-	}
-	return ""
-}
-
-func (x *UserProfile) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return nil
-}
-
-// AuthProvider represents a linked auth method
-type AuthProvider struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Provider       string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"` // "google", "github", etc
-	ProviderUserId string                 `protobuf:"bytes,2,opt,name=provider_user_id,json=providerUserId,proto3" json:"provider_user_id,omitempty"`
-	EmailVerified  bool                   `protobuf:"varint,3,opt,name=email_verified,json=emailVerified,proto3" json:"email_verified,omitempty"`
-	IsPrimary      bool                   `protobuf:"varint,4,opt,name=is_primary,json=isPrimary,proto3" json:"is_primary,omitempty"`
-	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	LastUsedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *AuthProvider) Reset() {
-	*x = AuthProvider{}
-	mi := &file_v1_entities_user_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AuthProvider) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AuthProvider) ProtoMessage() {}
-
-func (x *AuthProvider) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_entities_user_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AuthProvider.ProtoReflect.Descriptor instead.
-func (*AuthProvider) Descriptor() ([]byte, []int) {
-	return file_v1_entities_user_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *AuthProvider) GetProvider() string {
-	if x != nil {
-		return x.Provider
-	}
-	return ""
-}
-
-func (x *AuthProvider) GetProviderUserId() string {
-	if x != nil {
-		return x.ProviderUserId
-	}
-	return ""
-}
-
-func (x *AuthProvider) GetEmailVerified() bool {
-	if x != nil {
-		return x.EmailVerified
-	}
-	return false
-}
-
-func (x *AuthProvider) GetIsPrimary() bool {
-	if x != nil {
-		return x.IsPrimary
-	}
-	return false
-}
-
-func (x *AuthProvider) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return nil
-}
-
-func (x *AuthProvider) GetLastUsedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastUsedAt
-	}
-	return nil
+	return 0
 }
 
 var File_v1_entities_user_proto protoreflect.FileDescriptor
 
 const file_v1_entities_user_proto_rawDesc = "" +
 	"\n" +
-	"\x16v1/entities/user.proto\x12\x0fapi.v1.entities\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaa\x02\n" +
+	"\x16v1/entities/user.proto\x12\x0fapi.v1.entities\"\x93\x02\n" +
 	"\x04User\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\busername\x18\x03 \x01(\tR\busername\x12&\n" +
-	"\fdisplay_name\x18\x04 \x01(\tH\x00R\vdisplayName\x88\x01\x01\x12\"\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
+	"\x05email\x18\x02 \x01(\tH\x00R\x05email\x88\x01\x01\x12\x1a\n" +
+	"\busername\x18\x03 \x01(\tR\busername\x12?\n" +
+	"\bmetadata\x18\x04 \x03(\v2#.api.v1.entities.User.MetadataEntryR\bmetadata\x12\x1d\n" +
 	"\n" +
-	"avatar_url\x18\x05 \x01(\tH\x01R\tavatarUrl\x88\x01\x01\x129\n" +
+	"created_at\x18\x05 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"updated_at\x18\x06 \x01(\x03R\tupdatedAt\x1a;\n" +
+	"\rMetadataEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\b\n" +
+	"\x06_email*t\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAtB\x0f\n" +
-	"\r_display_nameB\r\n" +
-	"\v_avatar_url\"\xe0\x01\n" +
-	"\vUserProfile\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
-	"\busername\x18\x02 \x01(\tR\busername\x12&\n" +
-	"\fdisplay_name\x18\x03 \x01(\tH\x00R\vdisplayName\x88\x01\x01\x12\"\n" +
-	"\n" +
-	"avatar_url\x18\x04 \x01(\tH\x01R\tavatarUrl\x88\x01\x01\x129\n" +
-	"\n" +
-	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\x0f\n" +
-	"\r_display_nameB\r\n" +
-	"\v_avatar_url\"\x93\x02\n" +
-	"\fAuthProvider\x12\x1a\n" +
-	"\bprovider\x18\x01 \x01(\tR\bprovider\x12(\n" +
-	"\x10provider_user_id\x18\x02 \x01(\tR\x0eproviderUserId\x12%\n" +
-	"\x0eemail_verified\x18\x03 \x01(\bR\remailVerified\x12\x1d\n" +
-	"\n" +
-	"is_primary\x18\x04 \x01(\bR\tisPrimary\x129\n" +
-	"\n" +
-	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
-	"\flast_used_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastUsedAtB>Z<github.com/ckrwl/alunalun/api/gen/api/v1/entities;entitiesv1b\x06proto3"
+	"UserStatus\x12\x1b\n" +
+	"\x17USER_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12USER_STATUS_ACTIVE\x10\x01\x12\x18\n" +
+	"\x14USER_STATUS_DISABLED\x10\x02\x12\x17\n" +
+	"\x13USER_STATUS_PENDING\x10\x03BOZMgithub.com/radjathaher/alunalun/api/internal/protocgen/v1/entities;entitiesv1b\x06proto3"
 
 var (
 	file_v1_entities_user_proto_rawDescOnce sync.Once
@@ -328,24 +196,20 @@ func file_v1_entities_user_proto_rawDescGZIP() []byte {
 	return file_v1_entities_user_proto_rawDescData
 }
 
-var file_v1_entities_user_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_v1_entities_user_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_v1_entities_user_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_v1_entities_user_proto_goTypes = []any{
-	(*User)(nil),                  // 0: api.v1.entities.User
-	(*UserProfile)(nil),           // 1: api.v1.entities.UserProfile
-	(*AuthProvider)(nil),          // 2: api.v1.entities.AuthProvider
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(UserStatus)(0), // 0: api.v1.entities.UserStatus
+	(*User)(nil),    // 1: api.v1.entities.User
+	nil,             // 2: api.v1.entities.User.MetadataEntry
 }
 var file_v1_entities_user_proto_depIdxs = []int32{
-	3, // 0: api.v1.entities.User.created_at:type_name -> google.protobuf.Timestamp
-	3, // 1: api.v1.entities.User.updated_at:type_name -> google.protobuf.Timestamp
-	3, // 2: api.v1.entities.UserProfile.created_at:type_name -> google.protobuf.Timestamp
-	3, // 3: api.v1.entities.AuthProvider.created_at:type_name -> google.protobuf.Timestamp
-	3, // 4: api.v1.entities.AuthProvider.last_used_at:type_name -> google.protobuf.Timestamp
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	2, // 0: api.v1.entities.User.metadata:type_name -> api.v1.entities.User.MetadataEntry
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_v1_entities_user_proto_init() }
@@ -354,19 +218,19 @@ func file_v1_entities_user_proto_init() {
 		return
 	}
 	file_v1_entities_user_proto_msgTypes[0].OneofWrappers = []any{}
-	file_v1_entities_user_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_entities_user_proto_rawDesc), len(file_v1_entities_user_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   3,
+			NumEnums:      1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_v1_entities_user_proto_goTypes,
 		DependencyIndexes: file_v1_entities_user_proto_depIdxs,
+		EnumInfos:         file_v1_entities_user_proto_enumTypes,
 		MessageInfos:      file_v1_entities_user_proto_msgTypes,
 	}.Build()
 	File_v1_entities_user_proto = out.File

@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package api.v1.entities;
+
+option go_package = "github.com/radjathaher/alunalun/api/internal/protocgen/v1/entities;entitiesv1";
+
+import "v1/entities/user.proto";
+
+// Pin represents a pin on the map (composed from posts + posts_location)
+message Pin {
+  string id = 1;
+  string user_id = 2;
+  string content = 3;              // Title/description of the pin
+  Location location = 4;           // Geographic location
+  int64 created_at = 5;            // Unix timestamp
+  int64 updated_at = 6;            // Unix timestamp
+  
+  // API-only fields (joined/computed from database)
+  optional User author = 7;        // Joined from users table
+  int32 comment_count = 8;         // Computed from posts with parent_id
+}
+
+// Location represents geographic coordinates
+message Location {
+  double latitude = 1;             // Latitude in decimal degrees
+  double longitude = 2;            // Longitude in decimal degrees
+  optional double altitude = 3;    // Altitude in meters (optional)
+  optional string geohash = 4;     // Geohash for proximity queries
+}
+
+// Comment represents a comment on a pin or reply to another comment
+message Comment {
+  string id = 1;
+  string user_id = 2;
+  string content = 3;
+  optional string parent_id = 4;   // For nested replies (NULL for direct pin comments)
+  int64 created_at = 5;            // Unix timestamp
+  optional User author = 6;        // Joined from users table
+}
