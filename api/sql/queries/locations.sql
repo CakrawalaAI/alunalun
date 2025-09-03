@@ -75,3 +75,23 @@ LIMIT $4;
 
 -- name: DeletePostLocation :exec
 DELETE FROM posts_location WHERE post_id = $1;
+
+-- name: ListPinsByGeohash :many
+SELECT 
+    p.*,
+    pl.*
+FROM posts p
+JOIN posts_location pl ON p.id = pl.post_id
+WHERE p.type = 'pin'
+    AND pl.geohash LIKE $1 || '%'
+ORDER BY p.created_at DESC
+LIMIT $2;
+
+-- name: GetPinWithLocation :one
+SELECT 
+    p.*,
+    pl.*
+FROM posts p
+JOIN posts_location pl ON p.id = pl.post_id
+WHERE p.id = $1
+    AND p.type = 'pin';

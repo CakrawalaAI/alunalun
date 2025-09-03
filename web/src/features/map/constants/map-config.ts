@@ -1,25 +1,34 @@
-import {
-  DEFAULT_MAP_OPTIONS,
-  MAP_PRESETS,
-} from "@/features/map/config/map-options";
-
 // Map configuration for Jakarta, Indonesia focus
-// Now using the comprehensive configuration structure
 export const MAP_CONFIG = {
-  initialView: DEFAULT_MAP_OPTIONS.viewport,
+  initialView: {
+    center: [106.8001307, -6.2099592] as [number, number], // DPR RI, Jakarta
+    zoom: 15, // Neighborhood-level view (good detail of DPR complex)
+    bearing: 0, // North-facing
+    pitch: 0, // Top-down view
+  },
   limits: {
-    minZoom: DEFAULT_MAP_OPTIONS.performance.minZoom,
-    maxZoom: DEFAULT_MAP_OPTIONS.performance.maxZoom,
-    maxPitch: DEFAULT_MAP_OPTIONS.performance.maxPitch,
+    minZoom: 1,
+    maxZoom: 18,
+    maxPitch: 85, // Allow dramatic 3D viewing angles
     // No maxBounds - allow navigation anywhere in the world
   },
-  interactions: DEFAULT_MAP_OPTIONS.interactions,
-  controls: DEFAULT_MAP_OPTIONS.controls,
-  style: DEFAULT_MAP_OPTIONS.style,
+  interactions: {
+    scrollZoom: true,
+    dragPan: true,
+    dragRotate: true,
+    doubleClickZoom: true,
+    touchZoomRotate: true,
+    keyboard: true, // Built-in keyboard navigation
+  },
+  controls: {
+    navigation: true,
+    scale: true,
+    attribution: { compact: true },
+  },
+  style: {
+    preset: "liberty" as const, // Modern, colorful OpenFreeMap style
+  },
 } as const;
-
-// Export presets for easy switching
-export { MAP_PRESETS };
 
 // Indonesian cities and landmarks for quick navigation
 export const INDONESIAN_CITIES = {

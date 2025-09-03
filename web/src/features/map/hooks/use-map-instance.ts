@@ -13,19 +13,35 @@ export function useMapInstance(container: string | HTMLElement | null) {
 
   useEffect(() => {
     if (!container) {
+      logger.debug("Map container not ready");
       return;
     }
 
     try {
+      // Debug container dimensions
+      const containerEl = container instanceof HTMLElement ? container : document.getElementById(container);
+      if (containerEl) {
+        const rect = containerEl.getBoundingClientRect();
+        logger.debug("Container dimensions:", {
+          width: rect.width,
+          height: rect.height,
+          clientWidth: containerEl.clientWidth,
+          clientHeight: containerEl.clientHeight,
+          offsetWidth: containerEl.offsetWidth,
+          offsetHeight: containerEl.offsetHeight,
+        });
+        
+        if (rect.width === 0 || rect.height === 0) {
+          logger.error("Container has zero dimensions! Map cannot render.");
+        }
+      }
+
       // Load saved state or use default config
       const savedState = loadSavedState();
       const initialView = savedState || MAP_CONFIG.initialView;
 
       // Get style URL from configuration
-      const styleUrl = getStyleUrl(
-        MAP_CONFIG.style.preset,
-        MAP_CONFIG.style.customUrl,
-      );
+      const styleUrl = getStyleUrl(MAP_CONFIG.style.preset);
 
       // Initialize map with comprehensive configuration
       // NOTE: You may see console warnings "Expected value to be of type number, but found null"
@@ -51,11 +67,9 @@ export function useMapInstance(container: string | HTMLElement | null) {
         keyboard: MAP_CONFIG.interactions.keyboard,
         // Attribution control from config
         attributionControl:
-          MAP_CONFIG.controls.attribution === true
-            ? undefined
-            : (MAP_CONFIG.controls.attribution as
-                | false
-                | maplibregl.AttributionControlOptions),
+          typeof MAP_CONFIG.controls.attribution === "boolean"
+            ? MAP_CONFIG.controls.attribution
+            : (MAP_CONFIG.controls.attribution as maplibregl.AttributionControlOptions),
         // No maxBounds - allow worldwide navigation
       });
 

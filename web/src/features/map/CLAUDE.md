@@ -156,6 +156,42 @@ blocks/
 ### Known Issues
 - Console warnings "Expected value to be of type number, but found null instead" appear when loading OpenFreeMap tiles. These are harmless warnings from MapLibre's Web Workers processing vector tiles where style filter expressions expect numeric values but encounter nulls in the tile data. They don't affect functionality and can be safely ignored.
 
+## Troubleshooting: Container Height Requirements
+
+### Problem
+MapLibre shows "Container has zero dimensions! Map cannot render" error.
+
+### Root Cause
+MapLibre GL requires a container with **explicit dimensions** (width/height > 0). When using percentage heights (`h-full`/`height: 100%`), ALL parent elements in the DOM chain must have explicit heights.
+
+### Solution
+Ensure complete height chain from `html` to map container:
+
+1. **Global styles** (`globals.css`):
+```css
+html, body { @apply h-full; }
+#app { @apply h-full; }
+```
+
+2. **Page wrapper**:
+```jsx
+<div className="h-screen w-screen">
+  <Map />
+</div>
+```
+
+3. **Map container**:
+```jsx
+// Use absolute positioning to fill parent
+style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+```
+
+### Best Practices
+- Use **viewport units** (`h-screen`/`100vh`) for full-screen maps
+- Use **absolute positioning** when parent has defined dimensions
+- Avoid percentage heights unless all parents have explicit heights
+- Add debug logging to verify container dimensions before map init
+
 ## Troubleshooting: WebGL Canvas Pointer Events
 
 ### Problem

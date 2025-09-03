@@ -4,103 +4,93 @@ import (
 	"context"
 	"net/http"
 	"strings"
-	"time"
 
 	"connectrpc.com/connect"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/radjathaher/alunalun/api/internal/utils/auth"
 )
 
 // Context keys for auth values
 type contextKey string
 
 const (
-	userIDKey     contextKey = "user_id"
-	sessionIDKey  contextKey = "session_id"
-	authTypeKey   contextKey = "auth_type"
-	usernameKey   contextKey = "username"
+	claimsKey   contextKey = "claims"
+	userIDKey   contextKey = "user_id"
+	usernameKey contextKey = "username"
+	emailKey    contextKey = "email"
 )
 
-// AuthType represents the type of authentication
-type AuthType string
-
-const (
-	AuthTypeAnonymous     AuthType = "anonymous"
-	AuthTypeAuthenticated AuthType = "authenticated"
-	AuthTypeNone          AuthType = "none"
-)
-
-// AuthConfig holds authentication configuration
-type AuthConfig struct {
-	JWTSecret string
+// AuthInterceptor handles JWT authentication for ConnectRPC
+type AuthInterceptor struct {
+	tokenManager *auth.TokenManager
 }
 
-// NewAuthInterceptor creates a new auth interceptor with token type routing
-func NewAuthInterceptor(config AuthConfig) connect.UnaryInterceptorFunc {
-	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			// Extract token from Authorization header
+// NewAuthInterceptor creates a new auth interceptor
+func NewAuthInterceptor(tokenManager *auth.TokenManager) *AuthInterceptor {
+	return &AuthInterceptor{
+		tokenManager: tokenManager,
+	}
+}
+
+// WrapUnary creates a unary interceptor for authentication
+func (a *AuthInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
+	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		// Check if endpoint requires authentication
+		if !isPublicEndpoint(req.Spec().Procedure) {
+			// Extract and validate token
 			token := extractBearerToken(req.Header())
-			
 			if token == "" {
-				// No token - check if endpoint allows anonymous access
-				if isProtectedEndpoint(req.Spec().Procedure) {
-					return nil, connect.NewError(connect.CodeUnauthenticated, nil)
-				}
-				ctx = context.WithValue(ctx, authTypeKey, AuthTypeNone)
-				return next(ctx, req)
+				// No token on protected endpoint
+				return nil, connect.NewError(
+					connect.CodeUnauthenticated,
+					nil, // Don't leak info about why auth failed
+				)
 			}
-			
-			// Parse token to determine type
-			claims, err := parseTokenClaims(token, config.JWTSecret)
+
+			// Validate token
+			claims, err := a.tokenManager.ValidateToken(token)
 			if err != nil {
-				return nil, connect.NewError(connect.CodeUnauthenticated, err)
+				return nil, connect.NewError(
+					connect.CodeUnauthenticated,
+					nil, // Don't leak token validation errors
+				)
 			}
-			
-			// Route based on token type
-			tokenType, _ := claims["type"].(string)
-			switch tokenType {
-			case "anonymous":
-				// Anonymous tokens never expire
-				sessionID, _ := claims["session_id"].(string)
-				username, _ := claims["username"].(string)
-				
-				ctx = context.WithValue(ctx, authTypeKey, AuthTypeAnonymous)
-				ctx = context.WithValue(ctx, sessionIDKey, sessionID)
-				ctx = context.WithValue(ctx, usernameKey, username)
-				
-			case "authenticated", "":
-				// Authenticated tokens check expiration
-				if exp, ok := claims["exp"].(float64); ok {
-					if time.Now().Unix() > int64(exp) {
-						// Token expired but might be eligible for refresh
-						if refreshUntil, ok := claims["refresh_until"].(float64); ok {
-							if time.Now().Unix() <= int64(refreshUntil) {
-								// Token can be refreshed - let RefreshToken endpoint handle it
-								if req.Spec().Procedure == "/api.v1.service.AuthService/RefreshToken" {
-									// Allow through for refresh
-									ctx = context.WithValue(ctx, authTypeKey, AuthTypeAuthenticated)
-									ctx = context.WithValue(ctx, "expired_token", token)
-									return next(ctx, req)
-								}
-							}
-						}
-						return nil, connect.NewError(connect.CodeUnauthenticated, nil)
-					}
+
+			// Add claims to context
+			ctx = context.WithValue(ctx, claimsKey, claims)
+			ctx = context.WithValue(ctx, userIDKey, claims.UserID)
+			ctx = context.WithValue(ctx, usernameKey, claims.Username)
+			ctx = context.WithValue(ctx, emailKey, claims.Email)
+		} else {
+			// Public endpoint - optionally extract token if provided
+			token := extractBearerToken(req.Header())
+			if token != "" {
+				// Best effort - validate but don't fail if invalid
+				if claims, err := a.tokenManager.ValidateToken(token); err == nil {
+					ctx = context.WithValue(ctx, claimsKey, claims)
+					ctx = context.WithValue(ctx, userIDKey, claims.UserID)
+					ctx = context.WithValue(ctx, usernameKey, claims.Username)
+					ctx = context.WithValue(ctx, emailKey, claims.Email)
 				}
-				
-				userID, _ := claims["sub"].(string)
-				username, _ := claims["username"].(string)
-				
-				ctx = context.WithValue(ctx, authTypeKey, AuthTypeAuthenticated)
-				ctx = context.WithValue(ctx, userIDKey, userID)
-				ctx = context.WithValue(ctx, usernameKey, username)
-				
-			default:
-				return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 			}
-			
-			return next(ctx, req)
 		}
+
+		return next(ctx, req)
+	}
+}
+
+// WrapStreamingClient creates a streaming client interceptor
+func (a *AuthInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
+	return func(ctx context.Context, spec connect.Spec) connect.StreamingClientConn {
+		// Streaming not used in MVP, but structure is here
+		return next(ctx, spec)
+	}
+}
+
+// WrapStreamingHandler creates a streaming handler interceptor
+func (a *AuthInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+	return func(ctx context.Context, conn connect.StreamingHandlerConn) error {
+		// Streaming not used in MVP, but structure is here
+		return next(ctx, conn)
 	}
 }
 
@@ -110,48 +100,44 @@ func extractBearerToken(headers http.Header) string {
 	if auth == "" {
 		return ""
 	}
-	return strings.TrimPrefix(auth, "Bearer ")
+	
+	// Handle both "Bearer " and direct token
+	if strings.HasPrefix(auth, "Bearer ") {
+		return auth[7:]
+	}
+	return auth
 }
 
-// parseTokenClaims parses JWT without full validation (for type checking)
-func parseTokenClaims(tokenString string, secret string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Validate signing method
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return []byte(secret), nil
-	})
-	
-	if err != nil && err != jwt.ErrTokenExpired {
-		// Allow expired tokens through for type checking
-		return nil, err
-	}
-	
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, jwt.ErrTokenMalformed
-	}
-	
-	return claims, nil
-}
-
-// isProtectedEndpoint checks if an endpoint requires authentication
-func isProtectedEndpoint(procedure string) bool {
+// isPublicEndpoint checks if an endpoint allows public access
+func isPublicEndpoint(procedure string) bool {
 	// Public endpoints that don't require auth
 	publicEndpoints := []string{
-		"/api.v1.service.AuthService/CheckUsername",
-		"/api.v1.service.AuthService/InitAnonymous",
-		"/api.v1.service.AuthService/Authenticate",
-		"/api.v1.service.AuthService/RefreshToken",
+		// Auth endpoints
+		"/api.v1.service.auth.AuthService/CheckUsername",
+		"/api.v1.service.auth.AuthService/InitAnonymous", // For future use
+		"/api.v1.service.auth.AuthService/Authenticate",
+		"/api.v1.service.auth.AuthService/RefreshToken",
+		
+		// Public read endpoints for pins
+		"/api.v1.service.PinService/ListPins",  // Public map viewing
+		"/api.v1.service.PinService/GetPin",     // Public pin details
+		
+		// Public user info
+		"/api.v1.service.UserService/GetUser",   // Public user profile
 	}
 	
 	for _, endpoint := range publicEndpoints {
 		if procedure == endpoint {
-			return false
+			return true
 		}
 	}
-	return true // All other endpoints are protected
+	return false
+}
+
+// GetClaims retrieves JWT claims from context
+func GetClaims(ctx context.Context) *auth.Claims {
+	claims, _ := ctx.Value(claimsKey).(*auth.Claims)
+	return claims
 }
 
 // GetUserID gets user ID from context
@@ -160,33 +146,26 @@ func GetUserID(ctx context.Context) (string, bool) {
 	return userID, ok
 }
 
-// GetSessionID gets session ID from context
-func GetSessionID(ctx context.Context) (string, bool) {
-	sessionID, ok := ctx.Value(sessionIDKey).(string)
-	return sessionID, ok
-}
-
-// GetAuthType gets auth type from context
-func GetAuthType(ctx context.Context) AuthType {
-	authType, ok := ctx.Value(authTypeKey).(AuthType)
-	if !ok {
-		return AuthTypeNone
-	}
-	return authType
-}
-
 // GetUsername gets username from context
 func GetUsername(ctx context.Context) (string, bool) {
 	username, ok := ctx.Value(usernameKey).(string)
 	return username, ok
 }
 
-// IsAuthenticated checks if the request is from an authenticated user
-func IsAuthenticated(ctx context.Context) bool {
-	return GetAuthType(ctx) == AuthTypeAuthenticated
+// GetEmail gets email from context
+func GetEmail(ctx context.Context) (string, bool) {
+	email, ok := ctx.Value(emailKey).(string)
+	return email, ok
 }
 
-// IsAnonymous checks if the request is from an anonymous session
+// IsAuthenticated checks if the request is authenticated
+func IsAuthenticated(ctx context.Context) bool {
+	claims := GetClaims(ctx)
+	return claims != nil && claims.UserID != "" && !claims.IsAnonymous
+}
+
+// IsAnonymous checks if the request is from an anonymous user (future)
 func IsAnonymous(ctx context.Context) bool {
-	return GetAuthType(ctx) == AuthTypeAnonymous
+	claims := GetClaims(ctx)
+	return claims != nil && claims.IsAnonymous
 }

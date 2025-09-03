@@ -221,13 +221,18 @@ When OAuth provider limits are reached (e.g., 2000 daily tokens):
 - ✅ Proto definitions for entities and services
 - ✅ Auth service with OAuth support
 - ✅ JWT token management
+- ✅ ProtoConv converters for User and Pin entities
 
 ### To Implement
-- [ ] UserStore adapter bridging auth and repository
 - [ ] PinService with full CRUD operations
-- [ ] UserService for authenticated operations
+- [ ] UserService for authenticated operations  
 - [ ] Middleware for auth extraction
 - [ ] Main server wiring
+
+### Architecture Notes
+- **ProtoConv Pattern**: Using `internal/protoconv/` for converting between SQLC models and protobuf entities
+- **No Intermediate Structs**: Direct conversion between `repository.User` ↔ `entitiesv1.User`
+- **Auth Integration**: Auth service works directly with protobuf entities, third-party OAuth providers use minimal conversion
 
 ## Security Considerations
 

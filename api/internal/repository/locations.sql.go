@@ -66,6 +66,51 @@ func (q *Queries) DeletePostLocation(ctx context.Context, postID string) error {
 	return err
 }
 
+const getPinWithLocation = `-- name: GetPinWithLocation :one
+SELECT 
+    p.id, p.user_id, p.type, p.content, p.parent_id, p.metadata, p.created_at, p.updated_at,
+    pl.post_id, pl.location, pl.geohash, pl.created_at
+FROM posts p
+JOIN posts_location pl ON p.id = pl.post_id
+WHERE p.id = $1
+    AND p.type = 'pin'
+`
+
+type GetPinWithLocationRow struct {
+	ID          string             `json:"id"`
+	UserID      string             `json:"user_id"`
+	Type        string             `json:"type"`
+	Content     *string            `json:"content"`
+	ParentID    *string            `json:"parent_id"`
+	Metadata    []byte             `json:"metadata"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	PostID      string             `json:"post_id"`
+	Location    interface{}        `json:"location"`
+	Geohash     *string            `json:"geohash"`
+	CreatedAt_2 pgtype.Timestamptz `json:"created_at_2"`
+}
+
+func (q *Queries) GetPinWithLocation(ctx context.Context, id string) (*GetPinWithLocationRow, error) {
+	row := q.db.QueryRow(ctx, getPinWithLocation, id)
+	var i GetPinWithLocationRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.Content,
+		&i.ParentID,
+		&i.Metadata,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PostID,
+		&i.Location,
+		&i.Geohash,
+		&i.CreatedAt_2,
+	)
+	return &i, err
+}
+
 const getPostLocation = `-- name: GetPostLocation :one
 SELECT 
     post_id,
@@ -182,6 +227,71 @@ func (q *Queries) ListNearbyPins(ctx context.Context, arg *ListNearbyPinsParams)
 			&i.Geohash,
 			&i.DistanceMeters,
 			&i.CommentCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPinsByGeohash = `-- name: ListPinsByGeohash :many
+SELECT 
+    p.id, p.user_id, p.type, p.content, p.parent_id, p.metadata, p.created_at, p.updated_at,
+    pl.post_id, pl.location, pl.geohash, pl.created_at
+FROM posts p
+JOIN posts_location pl ON p.id = pl.post_id
+WHERE p.type = 'pin'
+    AND pl.geohash LIKE $1 || '%'
+ORDER BY p.created_at DESC
+LIMIT $2
+`
+
+type ListPinsByGeohashParams struct {
+	Column1 *string `json:"column_1"`
+	Limit   int32   `json:"limit"`
+}
+
+type ListPinsByGeohashRow struct {
+	ID          string             `json:"id"`
+	UserID      string             `json:"user_id"`
+	Type        string             `json:"type"`
+	Content     *string            `json:"content"`
+	ParentID    *string            `json:"parent_id"`
+	Metadata    []byte             `json:"metadata"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	PostID      string             `json:"post_id"`
+	Location    interface{}        `json:"location"`
+	Geohash     *string            `json:"geohash"`
+	CreatedAt_2 pgtype.Timestamptz `json:"created_at_2"`
+}
+
+func (q *Queries) ListPinsByGeohash(ctx context.Context, arg *ListPinsByGeohashParams) ([]*ListPinsByGeohashRow, error) {
+	rows, err := q.db.Query(ctx, listPinsByGeohash, arg.Column1, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*ListPinsByGeohashRow{}
+	for rows.Next() {
+		var i ListPinsByGeohashRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Type,
+			&i.Content,
+			&i.ParentID,
+			&i.Metadata,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.PostID,
+			&i.Location,
+			&i.Geohash,
+			&i.CreatedAt_2,
 		); err != nil {
 			return nil, err
 		}

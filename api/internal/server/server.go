@@ -7,120 +7,246 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/radjathaher/alunalun/api/internal/config"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/radjathaher/alunalun/api/internal/middleware"
-	"github.com/radjathaher/alunalun/api/internal/protocgen/v1/service/servicev1connect"
+	"github.com/radjathaher/alunalun/api/internal/protoconv"
+	authServicePb "github.com/radjathaher/alunalun/api/internal/protocgen/v1/auth_service/auth_servicev1connect"
+	pinServicePb "github.com/radjathaher/alunalun/api/internal/protocgen/v1/service/servicev1connect"
+	userServicePb "github.com/radjathaher/alunalun/api/internal/protocgen/v1/service/servicev1connect"
+	"github.com/radjathaher/alunalun/api/internal/repository"
 	authService "github.com/radjathaher/alunalun/api/internal/services/auth"
-	commentsService "github.com/radjathaher/alunalun/api/internal/services/comments"
-	feedService "github.com/radjathaher/alunalun/api/internal/services/feed"
-	mapService "github.com/radjathaher/alunalun/api/internal/services/map"
-	mediaService "github.com/radjathaher/alunalun/api/internal/services/media"
-	postsService "github.com/radjathaher/alunalun/api/internal/services/posts"
-	reactionsService "github.com/radjathaher/alunalun/api/internal/services/reactions"
-	"github.com/radjathaher/alunalun/api/internal/utils/db"
-	"github.com/rs/cors"
-	"go.uber.org/zap"
+	pinService "github.com/radjathaher/alunalun/api/internal/services/pin"
+	userService "github.com/radjathaher/alunalun/api/internal/services/user"
+	"github.com/radjathaher/alunalun/api/internal/utils/auth"
+	"github.com/radjathaher/alunalun/api/internal/utils/oauth"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
+// Config holds all server configuration
+type Config struct {
+	// Server
+	Addr         string
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
+
+	// Database
+	DB      *pgxpool.Pool
+	Queries *repository.Queries
+
+	// Auth
+	TokenManager   *auth.TokenManager
+	StateManager   *auth.StateManager
+	SessionManager *auth.SessionManager
+	AuthConfig     *auth.Config
+
+	// OAuth Providers
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURL  string
+
+	// Future dependencies
+	// S3Client    *s3.Client
+	// RedisClient *redis.Client
+	// QueueClient *sqs.Client
+}
+
+// Server represents the API server
 type Server struct {
-	config     *config.Config
-	db         *db.DB
-	logger     *zap.SugaredLogger
+	config     *Config
 	httpServer *http.Server
+	mux        *http.ServeMux
+
+	// Services
+	authService *authService.Service
+	userService *userService.Service
+	pinService  *pinService.Service
+
+	// Handlers
+	oauthHandler *authService.OAuthHandler
 }
 
-func New(cfg *config.Config, database *db.DB, logger *zap.SugaredLogger) *Server {
-	return &Server{
-		config: cfg,
-		db:     database,
-		logger: logger,
+// New creates a new server instance
+func New(config *Config) (*Server, error) {
+	s := &Server{
+		config: config,
+		mux:    http.NewServeMux(),
 	}
-}
 
-func (s *Server) Start() error {
-	mux := http.NewServeMux()
+	// Setup services
+	if err := s.setupServices(); err != nil {
+		return nil, fmt.Errorf("failed to setup services: %w", err)
+	}
 
-	// Register health check
-	mux.HandleFunc("/health", s.healthHandler)
-
-	// Initialize services
-	authSvc := authService.NewService(s.db, s.config.Auth, s.logger)
-	postsSvc := postsService.NewService(s.db, s.logger)
-	commentsSvc := commentsService.NewService(s.db, s.logger)
-	reactionsSvc := reactionsService.NewService(s.db, s.logger)
-	feedSvc := feedService.NewService(s.db, s.logger)
-	mapSvc := mapService.NewService(s.db, s.config.Services.MapboxToken, s.logger)
-	mediaSvc := mediaService.NewService(s.db, s.config.Services.MediaPath, s.logger)
-
-	// Create interceptors
-	interceptors := connect.WithInterceptors(
-		middleware.NewAuthInterceptor(authSvc),
-		middleware.NewLoggingInterceptor(s.logger),
-	)
-
-	// Register Connect RPC services
-	authPath, authHandler := servicev1connect.NewAuthServiceHandler(authSvc, interceptors)
-	mux.Handle(authPath, authHandler)
-
-	// Register other services when their handlers are ready
-	// userPath, userHandler := servicev1connect.NewUserServiceHandler(userSvc, interceptors)
-	// mux.Handle(userPath, userHandler)
-
-	// Setup CORS
-	c := cors.New(cors.Options{
-		AllowedOrigins:   s.config.Server.AllowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"*"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	})
-
-	handler := c.Handler(mux)
+	// Setup routes
+	if err := s.setupRoutes(); err != nil {
+		return nil, fmt.Errorf("failed to setup routes: %w", err)
+	}
 
 	// Create HTTP server
 	s.httpServer = &http.Server{
-		Addr:         fmt.Sprintf("%s:%s", s.config.Server.Host, s.config.Server.Port),
-		Handler:      handler,
-		ReadTimeout:  s.config.Server.ReadTimeout,
-		WriteTimeout: s.config.Server.WriteTimeout,
+		Addr:         config.Addr,
+		Handler:      h2c.NewHandler(corsMiddleware(s.mux), &http2.Server{}),
+		ReadTimeout:  config.ReadTimeout,
+		WriteTimeout: config.WriteTimeout,
+		IdleTimeout:  config.IdleTimeout,
 	}
 
-	s.logger.Infof("Starting server on %s", s.httpServer.Addr)
+	return s, nil
+}
 
-	// Start server
-	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		return fmt.Errorf("failed to start server: %w", err)
+// setupServices initializes all services
+func (s *Server) setupServices() error {
+	// Setup provider registry
+	registry := auth.NewProviderRegistry()
+	if err := s.setupProviders(registry); err != nil {
+		return fmt.Errorf("failed to setup providers: %w", err)
 	}
+
+	// Create user store adapter for auth service
+	// This implements auth.UserStore interface that auth service needs
+	userStore := protoconv.NewPostgresUserStore(s.config.Queries)
+
+	// Create auth service
+	var err error
+	s.authService, err = authService.NewService(
+		registry,
+		s.config.TokenManager,
+		s.config.SessionManager,
+		userStore,
+		s.config.AuthConfig,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create auth service: %w", err)
+	}
+
+	// Create user service
+	s.userService = userService.NewService(
+		s.config.Queries,
+		s.config.TokenManager,
+	)
+
+	// Create pin service
+	s.pinService = pinService.NewService(
+		s.config.DB,
+		s.config.Queries,
+		s.config.TokenManager,
+	)
+
+	// Create OAuth HTTP handler
+	s.oauthHandler = authService.NewOAuthHandler(
+		s.authService,
+		s.config.StateManager,
+		registry,
+		s.config.TokenManager,
+		s.config.SessionManager,
+	)
 
 	return nil
 }
 
-func (s *Server) Shutdown(ctx context.Context) error {
-	s.logger.Info("Shutting down server...")
-
-	// Shutdown HTTP server
-	if err := s.httpServer.Shutdown(ctx); err != nil {
-		return fmt.Errorf("failed to shutdown server: %w", err)
+// setupProviders registers auth providers
+func (s *Server) setupProviders(registry *auth.ProviderRegistry) error {
+	// Register Google OAuth if configured
+	if s.config.GoogleClientID != "" {
+		provider, err := oauth.NewGoogleProvider(
+			s.config.GoogleClientID,
+			s.config.GoogleClientSecret,
+			s.config.GoogleRedirectURL,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create Google provider: %w", err)
+		}
+		if err := registry.Register(provider); err != nil {
+			return fmt.Errorf("failed to register Google provider: %w", err)
+		}
 	}
 
-	// Close database connection
-	s.db.Close()
+	// Future: Register other providers
+	// - Apple OAuth
+	// - GitHub OAuth
+	// - Email/Password
+	// - Anonymous (when needed)
 
-	s.logger.Info("Server shutdown complete")
 	return nil
 }
 
-func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+// setupRoutes mounts all HTTP and ConnectRPC endpoints
+func (s *Server) setupRoutes() error {
+	// Create auth interceptor
+	authInterceptor := middleware.NewAuthInterceptor(s.config.TokenManager)
+	interceptors := connect.WithInterceptors(authInterceptor.WrapUnary)
+
+	// Mount OAuth HTTP routes
+	s.oauthHandler.RegisterRoutes(s.mux)
+
+	// Mount ConnectRPC services
+	authPath, authHandler := authServicePb.NewAuthServiceHandler(s.authService, interceptors)
+	s.mux.Handle(authPath, authHandler)
+
+	userPath, userHandler := userServicePb.NewUserServiceHandler(s.userService, interceptors)
+	s.mux.Handle(userPath, userHandler)
+
+	pinPath, pinHandler := pinServicePb.NewPinServiceHandler(s.pinService, interceptors)
+	s.mux.Handle(pinPath, pinHandler)
+
+	// Health check endpoint
+	s.mux.HandleFunc("/health", s.handleHealth)
+
+	// Future: Mount additional endpoints
+	// - Metrics endpoint
+	// - Ready endpoint
+	// - WebSocket endpoints
+	// - File upload endpoints
+
+	return nil
+}
+
+// handleHealth handles health check requests
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	// Check database connection
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()
 
-	// Check database health
-	if err := s.db.Health(ctx); err != nil {
+	if err := s.config.DB.Ping(ctx); err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte("unhealthy"))
+		w.Write([]byte("Database unavailable"))
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("healthy"))
+	w.Write([]byte("OK"))
+}
+
+// Start starts the HTTP server
+func (s *Server) Start() error {
+	return s.httpServer.ListenAndServe()
+}
+
+// Shutdown gracefully shuts down the server
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.httpServer.Shutdown(ctx)
+}
+
+// corsMiddleware adds CORS headers
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			origin = "*"
+		}
+
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Connect-Protocol-Version")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

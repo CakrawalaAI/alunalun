@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file v1/entities/user.proto.
  */
 export const file_v1_entities_user: GenFile = /*@__PURE__*/
-  fileDesc("ChZ2MS9lbnRpdGllcy91c2VyLnByb3RvEg9hcGkudjEuZW50aXRpZXMiagoEVXNlchIKCgJpZBgBIAEoCRISCgVlbWFpbBgCIAEoCUgAiAEBEhAKCHVzZXJuYW1lGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAMSEgoKdXBkYXRlZF9hdBgFIAEoA0IICgZfZW1haWwikQEKEFVzZXJBdXRoUHJvdmlkZXISCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRIQCghwcm92aWRlchgDIAEoCRIYChBwcm92aWRlcl91c2VyX2lkGAQgASgJEgwKBGRhdGEYBSABKAwSEgoKY3JlYXRlZF9hdBgGIAEoAxISCgp1cGRhdGVkX2F0GAcgASgDIu4BCgtVc2VyUHJvZmlsZRIPCgd1c2VyX2lkGAEgASgJEhcKCmZpcnN0X25hbWUYAiABKAlIAIgBARIWCglsYXN0X25hbWUYAyABKAlIAYgBARIXCgphdmF0YXJfdXJsGAQgASgJSAKIAQESEAoDYmlvGAUgASgJSAOIAQESFgoOZW1haWxfdmVyaWZpZWQYBiABKAgSEgoKY3JlYXRlZF9hdBgHIAEoAxISCgp1cGRhdGVkX2F0GAggASgDQg0KC19maXJzdF9uYW1lQgwKCl9sYXN0X25hbWVCDQoLX2F2YXRhcl91cmxCBgoEX2Jpbyp0CgpVc2VyU3RhdHVzEhsKF1VTRVJfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFgoSVVNFUl9TVEFUVVNfQUNUSVZFEAESGAoUVVNFUl9TVEFUVVNfRElTQUJMRUQQAhIXChNVU0VSX1NUQVRVU19QRU5ESU5HEANCT1pNZ2l0aHViLmNvbS9yYWRqYXRoYWhlci9hbHVuYWx1bi9hcGkvaW50ZXJuYWwvcHJvdG9jZ2VuL3YxL2VudGl0aWVzO2VudGl0aWVzdjFiBnByb3RvMw");
+  fileDesc("ChZ2MS9lbnRpdGllcy91c2VyLnByb3RvEg9hcGkudjEuZW50aXRpZXMi0gEKBFVzZXISCgoCaWQYASABKAkSEgoFZW1haWwYAiABKAlIAIgBARIQCgh1c2VybmFtZRgDIAEoCRI1CghtZXRhZGF0YRgEIAMoCzIjLmFwaS52MS5lbnRpdGllcy5Vc2VyLk1ldGFkYXRhRW50cnkSEgoKY3JlYXRlZF9hdBgFIAEoAxISCgp1cGRhdGVkX2F0GAYgASgDGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUIICgZfZW1haWwqdAoKVXNlclN0YXR1cxIbChdVU0VSX1NUQVRVU19VTlNQRUNJRklFRBAAEhYKElVTRVJfU1RBVFVTX0FDVElWRRABEhgKFFVTRVJfU1RBVFVTX0RJU0FCTEVEEAISFwoTVVNFUl9TVEFUVVNfUEVORElORxADQk9aTWdpdGh1Yi5jb20vcmFkamF0aGFoZXIvYWx1bmFsdW4vYXBpL2ludGVybmFsL3Byb3RvY2dlbi92MS9lbnRpdGllcztlbnRpdGllc3YxYgZwcm90bzM");
 
 /**
  * User represents a user in the system (matches database schema)
@@ -31,23 +31,30 @@ export type User = Message<"api.v1.entities.User"> & {
   email?: string;
 
   /**
-   * "anon-X" for anonymous, "X" for registered
+   * "anon-xyz" for anonymous, regular for registered
    *
    * @generated from field: string username = 3;
    */
   username: string;
 
   /**
+   * Flexible key-value metadata
+   *
+   * @generated from field: map<string, string> metadata = 4;
+   */
+  metadata: { [key: string]: string };
+
+  /**
    * Unix timestamp
    *
-   * @generated from field: int64 created_at = 4;
+   * @generated from field: int64 created_at = 5;
    */
   createdAt: bigint;
 
   /**
    * Unix timestamp
    *
-   * @generated from field: int64 updated_at = 5;
+   * @generated from field: int64 updated_at = 6;
    */
   updatedAt: bigint;
 };
@@ -58,123 +65,6 @@ export type User = Message<"api.v1.entities.User"> & {
  */
 export const UserSchema: GenMessage<User> = /*@__PURE__*/
   messageDesc(file_v1_entities_user, 0);
-
-/**
- * UserAuthProvider represents an authentication provider for a user
- *
- * @generated from message api.v1.entities.UserAuthProvider
- */
-export type UserAuthProvider = Message<"api.v1.entities.UserAuthProvider"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * @generated from field: string user_id = 2;
-   */
-  userId: string;
-
-  /**
-   * 'password', 'google', 'apple', etc.
-   *
-   * @generated from field: string provider = 3;
-   */
-  provider: string;
-
-  /**
-   * User's ID at the provider
-   *
-   * @generated from field: string provider_user_id = 4;
-   */
-  providerUserId: string;
-
-  /**
-   * JSON provider-specific data
-   *
-   * @generated from field: bytes data = 5;
-   */
-  data: Uint8Array;
-
-  /**
-   * Unix timestamp
-   *
-   * @generated from field: int64 created_at = 6;
-   */
-  createdAt: bigint;
-
-  /**
-   * Unix timestamp
-   *
-   * @generated from field: int64 updated_at = 7;
-   */
-  updatedAt: bigint;
-};
-
-/**
- * Describes the message api.v1.entities.UserAuthProvider.
- * Use `create(UserAuthProviderSchema)` to create a new message.
- */
-export const UserAuthProviderSchema: GenMessage<UserAuthProvider> = /*@__PURE__*/
-  messageDesc(file_v1_entities_user, 1);
-
-/**
- * UserProfile contains additional profile information for a user
- *
- * @generated from message api.v1.entities.UserProfile
- */
-export type UserProfile = Message<"api.v1.entities.UserProfile"> & {
-  /**
-   * @generated from field: string user_id = 1;
-   */
-  userId: string;
-
-  /**
-   * @generated from field: optional string first_name = 2;
-   */
-  firstName?: string;
-
-  /**
-   * @generated from field: optional string last_name = 3;
-   */
-  lastName?: string;
-
-  /**
-   * @generated from field: optional string avatar_url = 4;
-   */
-  avatarUrl?: string;
-
-  /**
-   * @generated from field: optional string bio = 5;
-   */
-  bio?: string;
-
-  /**
-   * @generated from field: bool email_verified = 6;
-   */
-  emailVerified: boolean;
-
-  /**
-   * Unix timestamp
-   *
-   * @generated from field: int64 created_at = 7;
-   */
-  createdAt: bigint;
-
-  /**
-   * Unix timestamp
-   *
-   * @generated from field: int64 updated_at = 8;
-   */
-  updatedAt: bigint;
-};
-
-/**
- * Describes the message api.v1.entities.UserProfile.
- * Use `create(UserProfileSchema)` to create a new message.
- */
-export const UserProfileSchema: GenMessage<UserProfile> = /*@__PURE__*/
-  messageDesc(file_v1_entities_user, 2);
 
 /**
  * UserStatus represents the status of a user

@@ -69,3 +69,12 @@ LEFT JOIN (
 WHERE p.type = 'pin'
 ORDER BY p.created_at DESC
 LIMIT $1 OFFSET $2;
+
+-- name: CountCommentsByPinID :one
+SELECT COUNT(*) FROM posts
+WHERE parent_id = $1 AND type = 'comment';
+
+-- name: GetCommentsByPinID :many
+SELECT * FROM posts
+WHERE parent_id = $1 AND type = 'comment'
+ORDER BY created_at ASC;

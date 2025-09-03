@@ -11,6 +11,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countCommentsByPinID = `-- name: CountCommentsByPinID :one
+SELECT COUNT(*) FROM posts
+WHERE parent_id = $1 AND type = 'comment'
+`
+
+func (q *Queries) CountCommentsByPinID(ctx context.Context, parentID *string) (int64, error) {
+	row := q.db.QueryRow(ctx, countCommentsByPinID, parentID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countCommentsByPost = `-- name: CountCommentsByPost :one
 SELECT COUNT(*) FROM posts
 WHERE parent_id = $1
@@ -72,6 +84,41 @@ DELETE FROM posts WHERE id = $1
 func (q *Queries) DeletePost(ctx context.Context, id string) error {
 	_, err := q.db.Exec(ctx, deletePost, id)
 	return err
+}
+
+const getCommentsByPinID = `-- name: GetCommentsByPinID :many
+SELECT id, user_id, type, content, parent_id, metadata, created_at, updated_at FROM posts
+WHERE parent_id = $1 AND type = 'comment'
+ORDER BY created_at ASC
+`
+
+func (q *Queries) GetCommentsByPinID(ctx context.Context, parentID *string) ([]*Post, error) {
+	rows, err := q.db.Query(ctx, getCommentsByPinID, parentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*Post{}
+	for rows.Next() {
+		var i Post
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Type,
+			&i.Content,
+			&i.ParentID,
+			&i.Metadata,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getPostByID = `-- name: GetPostByID :one
