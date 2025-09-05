@@ -11,30 +11,61 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countPinsInArea = `-- name: CountPinsInArea :one
+SELECT COUNT(*) 
+FROM posts p
+JOIN posts_location pl ON p.id = pl.post_id
+WHERE p.type = 'pin'
+    AND p.created_at > NOW() - INTERVAL '24 hours'
+    AND ST_Within(
+        pl.coordinates,
+        ST_MakeEnvelope($1, $2, $3, $4, 4326)
+    )
+`
+
+type CountPinsInAreaParams struct {
+	StMakeenvelope   interface{} `json:"st_makeenvelope"`
+	StMakeenvelope_2 interface{} `json:"st_makeenvelope_2"`
+	StMakeenvelope_3 interface{} `json:"st_makeenvelope_3"`
+	StMakeenvelope_4 interface{} `json:"st_makeenvelope_4"`
+}
+
+func (q *Queries) CountPinsInArea(ctx context.Context, arg *CountPinsInAreaParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countPinsInArea,
+		arg.StMakeenvelope,
+		arg.StMakeenvelope_2,
+		arg.StMakeenvelope_3,
+		arg.StMakeenvelope_4,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createPostLocation = `-- name: CreatePostLocation :one
-INSERT INTO posts_location (post_id, location, geohash, created_at)
+INSERT INTO posts_location (post_id, coordinates, geohash, created_at)
 VALUES ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326), $4, $5)
 RETURNING 
     post_id,
-    ST_X(location) as longitude,
-    ST_Y(location) as latitude,
+    ST_X(coordinates) as longitude,
+    ST_Y(coordinates) as latitude,
     geohash,
     created_at
 `
 
 type CreatePostLocationParams struct {
-	PostID        string             `json:"post_id"`
+	PostID        pgtype.UUID        `json:"post_id"`
 	StMakepoint   interface{}        `json:"st_makepoint"`
 	StMakepoint_2 interface{}        `json:"st_makepoint_2"`
-	Geohash       *string            `json:"geohash"`
+	Geohash       string             `json:"geohash"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 }
 
 type CreatePostLocationRow struct {
-	PostID    string             `json:"post_id"`
+	PostID    pgtype.UUID        `json:"post_id"`
 	Longitude interface{}        `json:"longitude"`
 	Latitude  interface{}        `json:"latitude"`
-	Geohash   *string            `json:"geohash"`
+	Geohash   string             `json:"geohash"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
@@ -61,52 +92,64 @@ const deletePostLocation = `-- name: DeletePostLocation :exec
 DELETE FROM posts_location WHERE post_id = $1
 `
 
-func (q *Queries) DeletePostLocation(ctx context.Context, postID string) error {
+func (q *Queries) DeletePostLocation(ctx context.Context, postID pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, deletePostLocation, postID)
 	return err
 }
 
 const getPinWithLocation = `-- name: GetPinWithLocation :one
 SELECT 
-    p.id, p.user_id, p.type, p.content, p.parent_id, p.metadata, p.created_at, p.updated_at,
-    pl.post_id, pl.location, pl.geohash, pl.created_at
+    p.id, p.user_id, p.type, p.parent_id, p.content, p.visibility, p.metadata, p.created_at,
+    u.username as author_username,
+    u.display_name as author_display_name,
+    u.avatar_url as author_avatar_url,
+    ST_X(pl.coordinates) as longitude,
+    ST_Y(pl.coordinates) as latitude,
+    pl.geohash,
+    pl.created_at as location_created_at
 FROM posts p
+LEFT JOIN users u ON p.user_id = u.id
 JOIN posts_location pl ON p.id = pl.post_id
-WHERE p.id = $1
-    AND p.type = 'pin'
+WHERE p.id = $1 AND p.type = 'pin'
 `
 
 type GetPinWithLocationRow struct {
-	ID          string             `json:"id"`
-	UserID      string             `json:"user_id"`
-	Type        string             `json:"type"`
-	Content     *string            `json:"content"`
-	ParentID    *string            `json:"parent_id"`
-	Metadata    []byte             `json:"metadata"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	PostID      string             `json:"post_id"`
-	Location    interface{}        `json:"location"`
-	Geohash     *string            `json:"geohash"`
-	CreatedAt_2 pgtype.Timestamptz `json:"created_at_2"`
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	Type              string             `json:"type"`
+	ParentID          pgtype.UUID        `json:"parent_id"`
+	Content           string             `json:"content"`
+	Visibility        *string            `json:"visibility"`
+	Metadata          []byte             `json:"metadata"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	AuthorUsername    *string            `json:"author_username"`
+	AuthorDisplayName *string            `json:"author_display_name"`
+	AuthorAvatarUrl   *string            `json:"author_avatar_url"`
+	Longitude         interface{}        `json:"longitude"`
+	Latitude          interface{}        `json:"latitude"`
+	Geohash           string             `json:"geohash"`
+	LocationCreatedAt pgtype.Timestamptz `json:"location_created_at"`
 }
 
-func (q *Queries) GetPinWithLocation(ctx context.Context, id string) (*GetPinWithLocationRow, error) {
+func (q *Queries) GetPinWithLocation(ctx context.Context, id pgtype.UUID) (*GetPinWithLocationRow, error) {
 	row := q.db.QueryRow(ctx, getPinWithLocation, id)
 	var i GetPinWithLocationRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Type,
-		&i.Content,
 		&i.ParentID,
+		&i.Content,
+		&i.Visibility,
 		&i.Metadata,
 		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.PostID,
-		&i.Location,
+		&i.AuthorUsername,
+		&i.AuthorDisplayName,
+		&i.AuthorAvatarUrl,
+		&i.Longitude,
+		&i.Latitude,
 		&i.Geohash,
-		&i.CreatedAt_2,
+		&i.LocationCreatedAt,
 	)
 	return &i, err
 }
@@ -114,8 +157,8 @@ func (q *Queries) GetPinWithLocation(ctx context.Context, id string) (*GetPinWit
 const getPostLocation = `-- name: GetPostLocation :one
 SELECT 
     post_id,
-    ST_X(location) as longitude,
-    ST_Y(location) as latitude,
+    ST_X(coordinates) as longitude,
+    ST_Y(coordinates) as latitude,
     geohash,
     created_at
 FROM posts_location
@@ -123,14 +166,14 @@ WHERE post_id = $1
 `
 
 type GetPostLocationRow struct {
-	PostID    string             `json:"post_id"`
+	PostID    pgtype.UUID        `json:"post_id"`
 	Longitude interface{}        `json:"longitude"`
 	Latitude  interface{}        `json:"latitude"`
-	Geohash   *string            `json:"geohash"`
+	Geohash   string             `json:"geohash"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
-func (q *Queries) GetPostLocation(ctx context.Context, postID string) (*GetPostLocationRow, error) {
+func (q *Queries) GetPostLocation(ctx context.Context, postID pgtype.UUID) (*GetPostLocationRow, error) {
 	row := q.db.QueryRow(ctx, getPostLocation, postID)
 	var i GetPostLocationRow
 	err := row.Scan(
@@ -145,28 +188,24 @@ func (q *Queries) GetPostLocation(ctx context.Context, postID string) (*GetPostL
 
 const listNearbyPins = `-- name: ListNearbyPins :many
 SELECT 
-    p.id, p.user_id, p.type, p.content, p.parent_id, p.metadata, p.created_at, p.updated_at,
+    p.id, p.user_id, p.type, p.parent_id, p.content, p.visibility, p.metadata, p.created_at,
     u.username as author_username,
-    ST_X(pl.location) as longitude,
-    ST_Y(pl.location) as latitude,
+    u.display_name as author_display_name,
+    u.avatar_url as author_avatar_url,
+    ST_X(pl.coordinates) as longitude,
+    ST_Y(pl.coordinates) as latitude,
     pl.geohash,
     ST_Distance(
-        pl.location::geography,
+        pl.coordinates::geography,
         ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
-    ) as distance_meters,
-    COALESCE(comment_counts.count, 0) as comment_count
+    ) as distance_meters
 FROM posts p
-JOIN users u ON p.user_id = u.id
+LEFT JOIN users u ON p.user_id = u.id
 JOIN posts_location pl ON p.id = pl.post_id
-LEFT JOIN (
-    SELECT parent_id, COUNT(*) as count
-    FROM posts
-    WHERE parent_id IS NOT NULL
-    GROUP BY parent_id
-) comment_counts ON p.id = comment_counts.parent_id
-WHERE p.type = 'pin'
+WHERE p.type = 'pin' 
+    AND p.created_at > NOW() - INTERVAL '24 hours'
     AND ST_DWithin(
-        pl.location::geography,
+        pl.coordinates::geography,
         ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
         $3  -- radius in meters
     )
@@ -182,20 +221,21 @@ type ListNearbyPinsParams struct {
 }
 
 type ListNearbyPinsRow struct {
-	ID             string             `json:"id"`
-	UserID         string             `json:"user_id"`
-	Type           string             `json:"type"`
-	Content        *string            `json:"content"`
-	ParentID       *string            `json:"parent_id"`
-	Metadata       []byte             `json:"metadata"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	AuthorUsername string             `json:"author_username"`
-	Longitude      interface{}        `json:"longitude"`
-	Latitude       interface{}        `json:"latitude"`
-	Geohash        *string            `json:"geohash"`
-	DistanceMeters interface{}        `json:"distance_meters"`
-	CommentCount   int64              `json:"comment_count"`
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	Type              string             `json:"type"`
+	ParentID          pgtype.UUID        `json:"parent_id"`
+	Content           string             `json:"content"`
+	Visibility        *string            `json:"visibility"`
+	Metadata          []byte             `json:"metadata"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	AuthorUsername    *string            `json:"author_username"`
+	AuthorDisplayName *string            `json:"author_display_name"`
+	AuthorAvatarUrl   *string            `json:"author_avatar_url"`
+	Longitude         interface{}        `json:"longitude"`
+	Latitude          interface{}        `json:"latitude"`
+	Geohash           string             `json:"geohash"`
+	DistanceMeters    interface{}        `json:"distance_meters"`
 }
 
 func (q *Queries) ListNearbyPins(ctx context.Context, arg *ListNearbyPinsParams) ([]*ListNearbyPinsRow, error) {
@@ -216,17 +256,18 @@ func (q *Queries) ListNearbyPins(ctx context.Context, arg *ListNearbyPinsParams)
 			&i.ID,
 			&i.UserID,
 			&i.Type,
-			&i.Content,
 			&i.ParentID,
+			&i.Content,
+			&i.Visibility,
 			&i.Metadata,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 			&i.AuthorUsername,
+			&i.AuthorDisplayName,
+			&i.AuthorAvatarUrl,
 			&i.Longitude,
 			&i.Latitude,
 			&i.Geohash,
 			&i.DistanceMeters,
-			&i.CommentCount,
 		); err != nil {
 			return nil, err
 		}
@@ -240,11 +281,18 @@ func (q *Queries) ListNearbyPins(ctx context.Context, arg *ListNearbyPinsParams)
 
 const listPinsByGeohash = `-- name: ListPinsByGeohash :many
 SELECT 
-    p.id, p.user_id, p.type, p.content, p.parent_id, p.metadata, p.created_at, p.updated_at,
-    pl.post_id, pl.location, pl.geohash, pl.created_at
+    p.id, p.user_id, p.type, p.parent_id, p.content, p.visibility, p.metadata, p.created_at,
+    u.username as author_username,
+    u.display_name as author_display_name,
+    u.avatar_url as author_avatar_url,
+    ST_X(pl.coordinates) as longitude,
+    ST_Y(pl.coordinates) as latitude,
+    pl.geohash
 FROM posts p
+LEFT JOIN users u ON p.user_id = u.id
 JOIN posts_location pl ON p.id = pl.post_id
-WHERE p.type = 'pin'
+WHERE p.type = 'pin' 
+    AND p.created_at > NOW() - INTERVAL '24 hours'
     AND pl.geohash LIKE $1 || '%'
 ORDER BY p.created_at DESC
 LIMIT $2
@@ -256,18 +304,20 @@ type ListPinsByGeohashParams struct {
 }
 
 type ListPinsByGeohashRow struct {
-	ID          string             `json:"id"`
-	UserID      string             `json:"user_id"`
-	Type        string             `json:"type"`
-	Content     *string            `json:"content"`
-	ParentID    *string            `json:"parent_id"`
-	Metadata    []byte             `json:"metadata"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	PostID      string             `json:"post_id"`
-	Location    interface{}        `json:"location"`
-	Geohash     *string            `json:"geohash"`
-	CreatedAt_2 pgtype.Timestamptz `json:"created_at_2"`
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	Type              string             `json:"type"`
+	ParentID          pgtype.UUID        `json:"parent_id"`
+	Content           string             `json:"content"`
+	Visibility        *string            `json:"visibility"`
+	Metadata          []byte             `json:"metadata"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	AuthorUsername    *string            `json:"author_username"`
+	AuthorDisplayName *string            `json:"author_display_name"`
+	AuthorAvatarUrl   *string            `json:"author_avatar_url"`
+	Longitude         interface{}        `json:"longitude"`
+	Latitude          interface{}        `json:"latitude"`
+	Geohash           string             `json:"geohash"`
 }
 
 func (q *Queries) ListPinsByGeohash(ctx context.Context, arg *ListPinsByGeohashParams) ([]*ListPinsByGeohashRow, error) {
@@ -283,15 +333,17 @@ func (q *Queries) ListPinsByGeohash(ctx context.Context, arg *ListPinsByGeohashP
 			&i.ID,
 			&i.UserID,
 			&i.Type,
-			&i.Content,
 			&i.ParentID,
+			&i.Content,
+			&i.Visibility,
 			&i.Metadata,
 			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.PostID,
-			&i.Location,
+			&i.AuthorUsername,
+			&i.AuthorDisplayName,
+			&i.AuthorAvatarUrl,
+			&i.Longitude,
+			&i.Latitude,
 			&i.Geohash,
-			&i.CreatedAt_2,
 		); err != nil {
 			return nil, err
 		}
@@ -305,24 +357,20 @@ func (q *Queries) ListPinsByGeohash(ctx context.Context, arg *ListPinsByGeohashP
 
 const listPinsInBoundingBox = `-- name: ListPinsInBoundingBox :many
 SELECT 
-    p.id, p.user_id, p.type, p.content, p.parent_id, p.metadata, p.created_at, p.updated_at,
+    p.id, p.user_id, p.type, p.parent_id, p.content, p.visibility, p.metadata, p.created_at,
     u.username as author_username,
-    ST_X(pl.location) as longitude,
-    ST_Y(pl.location) as latitude,
-    pl.geohash,
-    COALESCE(comment_counts.count, 0) as comment_count
+    u.display_name as author_display_name,
+    u.avatar_url as author_avatar_url,
+    ST_X(pl.coordinates) as longitude,
+    ST_Y(pl.coordinates) as latitude,
+    pl.geohash
 FROM posts p
-JOIN users u ON p.user_id = u.id
+LEFT JOIN users u ON p.user_id = u.id
 JOIN posts_location pl ON p.id = pl.post_id
-LEFT JOIN (
-    SELECT parent_id, COUNT(*) as count
-    FROM posts
-    WHERE parent_id IS NOT NULL
-    GROUP BY parent_id
-) comment_counts ON p.id = comment_counts.parent_id
-WHERE p.type = 'pin'
+WHERE p.type = 'pin' 
+    AND p.created_at > NOW() - INTERVAL '24 hours'
     AND ST_Within(
-        pl.location,
+        pl.coordinates,
         ST_MakeEnvelope($1, $2, $3, $4, 4326)
     )
 ORDER BY p.created_at DESC
@@ -339,19 +387,20 @@ type ListPinsInBoundingBoxParams struct {
 }
 
 type ListPinsInBoundingBoxRow struct {
-	ID             string             `json:"id"`
-	UserID         string             `json:"user_id"`
-	Type           string             `json:"type"`
-	Content        *string            `json:"content"`
-	ParentID       *string            `json:"parent_id"`
-	Metadata       []byte             `json:"metadata"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	AuthorUsername string             `json:"author_username"`
-	Longitude      interface{}        `json:"longitude"`
-	Latitude       interface{}        `json:"latitude"`
-	Geohash        *string            `json:"geohash"`
-	CommentCount   int64              `json:"comment_count"`
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	Type              string             `json:"type"`
+	ParentID          pgtype.UUID        `json:"parent_id"`
+	Content           string             `json:"content"`
+	Visibility        *string            `json:"visibility"`
+	Metadata          []byte             `json:"metadata"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	AuthorUsername    *string            `json:"author_username"`
+	AuthorDisplayName *string            `json:"author_display_name"`
+	AuthorAvatarUrl   *string            `json:"author_avatar_url"`
+	Longitude         interface{}        `json:"longitude"`
+	Latitude          interface{}        `json:"latitude"`
+	Geohash           string             `json:"geohash"`
 }
 
 func (q *Queries) ListPinsInBoundingBox(ctx context.Context, arg *ListPinsInBoundingBoxParams) ([]*ListPinsInBoundingBoxRow, error) {
@@ -374,16 +423,17 @@ func (q *Queries) ListPinsInBoundingBox(ctx context.Context, arg *ListPinsInBoun
 			&i.ID,
 			&i.UserID,
 			&i.Type,
-			&i.Content,
 			&i.ParentID,
+			&i.Content,
+			&i.Visibility,
 			&i.Metadata,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 			&i.AuthorUsername,
+			&i.AuthorDisplayName,
+			&i.AuthorAvatarUrl,
 			&i.Longitude,
 			&i.Latitude,
 			&i.Geohash,
-			&i.CommentCount,
 		); err != nil {
 			return nil, err
 		}

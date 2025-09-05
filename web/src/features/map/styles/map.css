@@ -1,0 +1,20 @@
+/* Import MapLibre GL styles */
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+/* Map container styles */
+.map-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Override MapLibre default styles if needed */
+.maplibregl-canvas {
+  outline: none;
+}
+
+/* Ensure proper attribution styling */
+.maplibregl-ctrl-attrib {
+  background-color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+}

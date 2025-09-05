@@ -31,3 +31,10 @@ export const getPin = PinService.method.getPin;
  * @generated from rpc api.v1.service.PinService.AddComment
  */
 export const addComment = PinService.method.addComment;
+
+/**
+ * Delete a pin (owner only)
+ *
+ * @generated from rpc api.v1.service.PinService.DeletePin
+ */
+export const deletePin = PinService.method.deletePin;

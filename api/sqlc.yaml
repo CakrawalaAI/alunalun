@@ -3,9 +3,9 @@ sql:
   - engine: "postgresql"
     queries: 
       - "sql/queries/users.sql"
+      - "sql/queries/auth_providers.sql"
       - "sql/queries/posts.sql"
       - "sql/queries/locations.sql"
-      - "sql/queries/user_events.sql"
     schema: "sql/migrations"
     gen:
       go:

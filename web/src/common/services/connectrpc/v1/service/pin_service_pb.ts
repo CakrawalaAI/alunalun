@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file v1/service/pin_service.proto.
  */
 export const file_v1_service_pin_service: GenFile = /*@__PURE__*/
-  fileDesc("Chx2MS9zZXJ2aWNlL3Bpbl9zZXJ2aWNlLnByb3RvEg5hcGkudjEuc2VydmljZSJQChBDcmVhdGVQaW5SZXF1ZXN0Eg8KB2NvbnRlbnQYASABKAkSKwoIbG9jYXRpb24YAiABKAsyGS5hcGkudjEuZW50aXRpZXMuTG9jYXRpb24iNgoRQ3JlYXRlUGluUmVzcG9uc2USIQoDcGluGAEgASgLMhQuYXBpLnYxLmVudGl0aWVzLlBpbiKJAQoPTGlzdFBpbnNSZXF1ZXN0Eg0KBW5vcnRoGAEgASgBEg0KBXNvdXRoGAIgASgBEgwKBGVhc3QYAyABKAESDAoEd2VzdBgEIAEoARISCgVsaW1pdBgFIAEoBUgAiAEBEhMKBmN1cnNvchgGIAEoCUgBiAEBQggKBl9saW1pdEIJCgdfY3Vyc29yImAKEExpc3RQaW5zUmVzcG9uc2USIgoEcGlucxgBIAMoCzIULmFwaS52MS5lbnRpdGllcy5QaW4SGAoLbmV4dF9jdXJzb3IYAiABKAlIAIgBAUIOCgxfbmV4dF9jdXJzb3IiHwoNR2V0UGluUmVxdWVzdBIOCgZwaW5faWQYASABKAkiXwoOR2V0UGluUmVzcG9uc2USIQoDcGluGAEgASgLMhQuYXBpLnYxLmVudGl0aWVzLlBpbhIqCghjb21tZW50cxgCIAMoCzIYLmFwaS52MS5lbnRpdGllcy5Db21tZW50IloKEUFkZENvbW1lbnRSZXF1ZXN0Eg4KBnBpbl9pZBgBIAEoCRIPCgdjb250ZW50GAIgASgJEhYKCXBhcmVudF9pZBgDIAEoCUgAiAEBQgwKCl9wYXJlbnRfaWQiPwoSQWRkQ29tbWVudFJlc3BvbnNlEikKB2NvbW1lbnQYASABKAsyGC5hcGkudjEuZW50aXRpZXMuQ29tbWVudDLLAgoKUGluU2VydmljZRJQCglDcmVhdGVQaW4SIC5hcGkudjEuc2VydmljZS5DcmVhdGVQaW5SZXF1ZXN0GiEuYXBpLnYxLnNlcnZpY2UuQ3JlYXRlUGluUmVzcG9uc2USTQoITGlzdFBpbnMSHy5hcGkudjEuc2VydmljZS5MaXN0UGluc1JlcXVlc3QaIC5hcGkudjEuc2VydmljZS5MaXN0UGluc1Jlc3BvbnNlEkcKBkdldFBpbhIdLmFwaS52MS5zZXJ2aWNlLkdldFBpblJlcXVlc3QaHi5hcGkudjEuc2VydmljZS5HZXRQaW5SZXNwb25zZRJTCgpBZGRDb21tZW50EiEuYXBpLnYxLnNlcnZpY2UuQWRkQ29tbWVudFJlcXVlc3QaIi5hcGkudjEuc2VydmljZS5BZGRDb21tZW50UmVzcG9uc2VCTVpLZ2l0aHViLmNvbS9yYWRqYXRoYWhlci9hbHVuYWx1bi9hcGkvaW50ZXJuYWwvcHJvdG9jZ2VuL3YxL3NlcnZpY2U7c2VydmljZXYxYgZwcm90bzM", [file_v1_entities_pin]);
+  fileDesc("Chx2MS9zZXJ2aWNlL3Bpbl9zZXJ2aWNlLnByb3RvEg5hcGkudjEuc2VydmljZSJQChBDcmVhdGVQaW5SZXF1ZXN0Eg8KB2NvbnRlbnQYASABKAkSKwoIbG9jYXRpb24YAiABKAsyGS5hcGkudjEuZW50aXRpZXMuTG9jYXRpb24iNgoRQ3JlYXRlUGluUmVzcG9uc2USIQoDcGluGAEgASgLMhQuYXBpLnYxLmVudGl0aWVzLlBpbiKCAQoPTGlzdFBpbnNSZXF1ZXN0EhAKCGxhdGl0dWRlGAEgASgBEhEKCWxvbmdpdHVkZRgCIAEoARIMCgR6b29tGAMgASgFEhIKBWxpbWl0GAQgASgFSACIAQESEwoGY3Vyc29yGAUgASgJSAGIAQFCCAoGX2xpbWl0QgkKB19jdXJzb3IiYAoQTGlzdFBpbnNSZXNwb25zZRIiCgRwaW5zGAEgAygLMhQuYXBpLnYxLmVudGl0aWVzLlBpbhIYCgtuZXh0X2N1cnNvchgCIAEoCUgAiAEBQg4KDF9uZXh0X2N1cnNvciIfCg1HZXRQaW5SZXF1ZXN0Eg4KBnBpbl9pZBgBIAEoCSJfCg5HZXRQaW5SZXNwb25zZRIhCgNwaW4YASABKAsyFC5hcGkudjEuZW50aXRpZXMuUGluEioKCGNvbW1lbnRzGAIgAygLMhguYXBpLnYxLmVudGl0aWVzLkNvbW1lbnQiWgoRQWRkQ29tbWVudFJlcXVlc3QSDgoGcGluX2lkGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSFgoJcGFyZW50X2lkGAMgASgJSACIAQFCDAoKX3BhcmVudF9pZCI/ChJBZGRDb21tZW50UmVzcG9uc2USKQoHY29tbWVudBgBIAEoCzIYLmFwaS52MS5lbnRpdGllcy5Db21tZW50IiIKEERlbGV0ZVBpblJlcXVlc3QSDgoGcGluX2lkGAEgASgJIiQKEURlbGV0ZVBpblJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgynQMKClBpblNlcnZpY2USUAoJQ3JlYXRlUGluEiAuYXBpLnYxLnNlcnZpY2UuQ3JlYXRlUGluUmVxdWVzdBohLmFwaS52MS5zZXJ2aWNlLkNyZWF0ZVBpblJlc3BvbnNlEk0KCExpc3RQaW5zEh8uYXBpLnYxLnNlcnZpY2UuTGlzdFBpbnNSZXF1ZXN0GiAuYXBpLnYxLnNlcnZpY2UuTGlzdFBpbnNSZXNwb25zZRJHCgZHZXRQaW4SHS5hcGkudjEuc2VydmljZS5HZXRQaW5SZXF1ZXN0Gh4uYXBpLnYxLnNlcnZpY2UuR2V0UGluUmVzcG9uc2USUwoKQWRkQ29tbWVudBIhLmFwaS52MS5zZXJ2aWNlLkFkZENvbW1lbnRSZXF1ZXN0GiIuYXBpLnYxLnNlcnZpY2UuQWRkQ29tbWVudFJlc3BvbnNlElAKCURlbGV0ZVBpbhIgLmFwaS52MS5zZXJ2aWNlLkRlbGV0ZVBpblJlcXVlc3QaIS5hcGkudjEuc2VydmljZS5EZWxldGVQaW5SZXNwb25zZUJNWktnaXRodWIuY29tL3JhZGphdGhhaGVyL2FsdW5hbHVuL2FwaS9pbnRlcm5hbC9wcm90b2NnZW4vdjEvc2VydmljZTtzZXJ2aWNldjFiBnByb3RvMw", [file_v1_entities_pin]);
 
 /**
  * @generated from message api.v1.service.CreatePinRequest
@@ -62,46 +62,39 @@ export const CreatePinResponseSchema: GenMessage<CreatePinResponse> = /*@__PURE_
  */
 export type ListPinsRequest = Message<"api.v1.service.ListPinsRequest"> & {
   /**
-   * Bounding box coordinates
+   * Center point coordinates
    *
-   * Max latitude
+   * Center latitude
    *
-   * @generated from field: double north = 1;
+   * @generated from field: double latitude = 1;
    */
-  north: number;
+  latitude: number;
 
   /**
-   * Min latitude
+   * Center longitude
    *
-   * @generated from field: double south = 2;
+   * @generated from field: double longitude = 2;
    */
-  south: number;
+  longitude: number;
 
   /**
-   * Max longitude
+   * Zoom level (determines precision and limit)
    *
-   * @generated from field: double east = 3;
+   * @generated from field: int32 zoom = 3;
    */
-  east: number;
+  zoom: number;
 
   /**
-   * Min longitude
+   * Override default limit
    *
-   * @generated from field: double west = 4;
-   */
-  west: number;
-
-  /**
-   * Max results (default: 50)
-   *
-   * @generated from field: optional int32 limit = 5;
+   * @generated from field: optional int32 limit = 4;
    */
   limit?: number;
 
   /**
    * Pagination cursor
    *
-   * @generated from field: optional string cursor = 6;
+   * @generated from field: optional string cursor = 5;
    */
   cursor?: string;
 };
@@ -229,6 +222,40 @@ export const AddCommentResponseSchema: GenMessage<AddCommentResponse> = /*@__PUR
   messageDesc(file_v1_service_pin_service, 7);
 
 /**
+ * @generated from message api.v1.service.DeletePinRequest
+ */
+export type DeletePinRequest = Message<"api.v1.service.DeletePinRequest"> & {
+  /**
+   * @generated from field: string pin_id = 1;
+   */
+  pinId: string;
+};
+
+/**
+ * Describes the message api.v1.service.DeletePinRequest.
+ * Use `create(DeletePinRequestSchema)` to create a new message.
+ */
+export const DeletePinRequestSchema: GenMessage<DeletePinRequest> = /*@__PURE__*/
+  messageDesc(file_v1_service_pin_service, 8);
+
+/**
+ * @generated from message api.v1.service.DeletePinResponse
+ */
+export type DeletePinResponse = Message<"api.v1.service.DeletePinResponse"> & {
+  /**
+   * @generated from field: bool success = 1;
+   */
+  success: boolean;
+};
+
+/**
+ * Describes the message api.v1.service.DeletePinResponse.
+ * Use `create(DeletePinResponseSchema)` to create a new message.
+ */
+export const DeletePinResponseSchema: GenMessage<DeletePinResponse> = /*@__PURE__*/
+  messageDesc(file_v1_service_pin_service, 9);
+
+/**
  * PinService handles pin and comment operations
  *
  * @generated from service api.v1.service.PinService
@@ -273,6 +300,16 @@ export const PinService: GenService<{
     methodKind: "unary";
     input: typeof AddCommentRequestSchema;
     output: typeof AddCommentResponseSchema;
+  },
+  /**
+   * Delete a pin (owner only)
+   *
+   * @generated from rpc api.v1.service.PinService.DeletePin
+   */
+  deletePin: {
+    methodKind: "unary";
+    input: typeof DeletePinRequestSchema;
+    output: typeof DeletePinResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_v1_service_pin_service, 0);

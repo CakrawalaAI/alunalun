@@ -23,79 +23,79 @@ func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (id, email, username, metadata, created_at, updated_at) 
+INSERT INTO users (id, username, email, display_name, avatar_url, created_at) 
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, email, username, metadata, created_at, updated_at
+RETURNING id, username, email, display_name, avatar_url, created_at
 `
 
 type CreateUserParams struct {
-	ID        string             `json:"id"`
-	Email     *string            `json:"email"`
-	Username  string             `json:"username"`
-	Metadata  []byte             `json:"metadata"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID          pgtype.UUID        `json:"id"`
+	Username    string             `json:"username"`
+	Email       string             `json:"email"`
+	DisplayName *string            `json:"display_name"`
+	AvatarUrl   *string            `json:"avatar_url"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg *CreateUserParams) (*User, error) {
 	row := q.db.QueryRow(ctx, createUser,
 		arg.ID,
-		arg.Email,
 		arg.Username,
-		arg.Metadata,
+		arg.Email,
+		arg.DisplayName,
+		arg.AvatarUrl,
 		arg.CreatedAt,
-		arg.UpdatedAt,
 	)
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.Email,
 		&i.Username,
-		&i.Metadata,
+		&i.Email,
+		&i.DisplayName,
+		&i.AvatarUrl,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return &i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, username, metadata, created_at, updated_at FROM users WHERE email = $1
+SELECT id, username, email, display_name, avatar_url, created_at FROM users WHERE email = $1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email *string) (*User, error) {
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.Email,
 		&i.Username,
-		&i.Metadata,
+		&i.Email,
+		&i.DisplayName,
+		&i.AvatarUrl,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return &i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, username, metadata, created_at, updated_at FROM users WHERE id = $1
+SELECT id, username, email, display_name, avatar_url, created_at FROM users WHERE id = $1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id string) (*User, error) {
+func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (*User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.Email,
 		&i.Username,
-		&i.Metadata,
+		&i.Email,
+		&i.DisplayName,
+		&i.AvatarUrl,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return &i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, email, username, metadata, created_at, updated_at FROM users WHERE username = $1
+SELECT id, username, email, display_name, avatar_url, created_at FROM users WHERE username = $1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (*User, error) {
@@ -103,17 +103,17 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (*User
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.Email,
 		&i.Username,
-		&i.Metadata,
+		&i.Email,
+		&i.DisplayName,
+		&i.AvatarUrl,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return &i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, username, metadata, created_at, updated_at FROM users 
+SELECT id, username, email, display_name, avatar_url, created_at FROM users 
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -134,11 +134,11 @@ func (q *Queries) ListUsers(ctx context.Context, arg *ListUsersParams) ([]*User,
 		var i User
 		if err := rows.Scan(
 			&i.ID,
-			&i.Email,
 			&i.Username,
-			&i.Metadata,
+			&i.Email,
+			&i.DisplayName,
+			&i.AvatarUrl,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -153,38 +153,38 @@ func (q *Queries) ListUsers(ctx context.Context, arg *ListUsersParams) ([]*User,
 const updateUser = `-- name: UpdateUser :one
 UPDATE users 
 SET 
-    email = $2,
-    username = $3,
-    metadata = $4,
-    updated_at = $5
+    username = $2,
+    email = $3,
+    display_name = $4,
+    avatar_url = $5
 WHERE id = $1
-RETURNING id, email, username, metadata, created_at, updated_at
+RETURNING id, username, email, display_name, avatar_url, created_at
 `
 
 type UpdateUserParams struct {
-	ID        string             `json:"id"`
-	Email     *string            `json:"email"`
-	Username  string             `json:"username"`
-	Metadata  []byte             `json:"metadata"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID          pgtype.UUID `json:"id"`
+	Username    string      `json:"username"`
+	Email       string      `json:"email"`
+	DisplayName *string     `json:"display_name"`
+	AvatarUrl   *string     `json:"avatar_url"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg *UpdateUserParams) (*User, error) {
 	row := q.db.QueryRow(ctx, updateUser,
 		arg.ID,
-		arg.Email,
 		arg.Username,
-		arg.Metadata,
-		arg.UpdatedAt,
+		arg.Email,
+		arg.DisplayName,
+		arg.AvatarUrl,
 	)
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.Email,
 		&i.Username,
-		&i.Metadata,
+		&i.Email,
+		&i.DisplayName,
+		&i.AvatarUrl,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return &i, err
 }

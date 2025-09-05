@@ -1,15 +1,13 @@
 package protoconv
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	entitiesv1 "github.com/radjathaher/alunalun/api/internal/protocgen/v1/entities"
 	"github.com/radjathaher/alunalun/api/internal/repository"
 	"github.com/mmcloughlin/geohash"
-	"github.com/segmentio/ksuid"
+	"github.com/google/uuid"
 )
 
 // PinToProto converts repository Post+PostsLocation to protobuf Pin entity
@@ -19,16 +17,12 @@ func PinToProto(post *repository.Post, location *repository.PostsLocation, autho
 	}
 
 	pin := &entitiesv1.Pin{
-		Id:           post.ID,
-		UserId:       post.UserID,
+		Id:           post.ID.String(),
+		UserId:       post.AuthorUserID.String(),
 		CreatedAt:    post.CreatedAt.Time.Unix(),
 		UpdatedAt:    post.UpdatedAt.Time.Unix(),
 		CommentCount: commentCount,
-	}
-
-	// Set content if not null
-	if post.Content != nil {
-		pin.Content = *post.Content
+		Content:      post.Content, // Content is now string directly, not pointer
 	}
 
 	// Add location if available
@@ -73,20 +67,83 @@ func LocationToProto(loc *repository.PostsLocation) *entitiesv1.Location {
 	return protoLoc
 }
 
+// LocationFromRowToProto converts longitude/latitude from query row to protobuf Location
+func LocationFromRowToProto(longitude, latitude interface{}, geohash *string) *entitiesv1.Location {
+	if longitude == nil || latitude == nil {
+		return nil
+	}
+
+	// Convert interface{} to float64
+	lng, ok1 := longitude.(float64)
+	lat, ok2 := latitude.(float64)
+	
+	if !ok1 || !ok2 {
+		return nil
+	}
+
+	protoLoc := &entitiesv1.Location{
+		Latitude:  lat,
+		Longitude: lng,
+	}
+
+	// Set geohash if available
+	if geohash != nil {
+		protoLoc.Geohash = geohash
+	}
+
+	return protoLoc
+}
+
+// PinFromRowToProto converts query row data to protobuf Pin entity
+func PinFromRowToProto(id, authorID string, content string, createdAt, updatedAt int64, 
+	longitude, latitude interface{}, geohash *string, author *repository.User, commentCount int32) *entitiesv1.Pin {
+	
+	pin := &entitiesv1.Pin{
+		Id:           id,
+		UserId:       authorID,
+		Content:      content,
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
+		CommentCount: commentCount,
+	}
+
+	// Add location if coordinates are available
+	if longitude != nil && latitude != nil {
+		pin.Location = LocationFromRowToProto(longitude, latitude, geohash)
+	}
+
+	// Add author if available
+	if author != nil {
+		pin.Author = UserToProto(author)
+	}
+
+	return pin
+}
+
 // ProtoToCreatePinParams converts protobuf CreatePinRequest to repository params
 func ProtoToCreatePinParams(userID string, content string, location *entitiesv1.Location) (*repository.CreatePostParams, *repository.CreatePostLocationParams, error) {
-	// Generate ID
-	pinID := "pin-" + ksuid.New().String()
+	// Generate UUID for pin
+	pinID := uuid.New().String()
 	now := time.Now()
+
+	// Parse UUID strings
+	var postIDUUID pgtype.UUID
+	err := postIDUUID.Scan(pinID)
+	if err != nil {
+		return nil, nil, err
+	}
+	var authorIDUUID pgtype.UUID
+	err = authorIDUUID.Scan(userID)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// Create post params
 	postParams := &repository.CreatePostParams{
-		ID:       pinID,
-		UserID:   userID,
-		Type:     "pin",
-		Content:  &content,
-		ParentID: nil, // Pins have no parent
-		Metadata: []byte("{}"),
+		ID:           postIDUUID,
+		AuthorUserID: authorIDUUID,
+		Type:         "pin",
+		Content:      content, // Content is now string directly, not pointer
 		CreatedAt: pgtype.Timestamptz{
 			Time:  now,
 			Valid: true,
@@ -103,16 +160,19 @@ func ProtoToCreatePinParams(userID string, content string, location *entitiesv1.
 		// Calculate geohash with 8 character precision (~38m accuracy)
 		ghash := geohash.EncodeWithPrecision(location.Latitude, location.Longitude, 8)
 
+		// Convert string pinID to UUID for PostID
+		var postIDUUID pgtype.UUID
+		err := postIDUUID.Scan(pinID)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		locationParams = &repository.CreatePostLocationParams{
-			PostID: pinID,
-			// Location will need to be formatted as PostGIS POINT
-			// Format: POINT(longitude latitude)
-			Location: fmt.Sprintf("POINT(%f %f)", location.Longitude, location.Latitude),
-			Geohash:  &ghash,
-			CreatedAt: pgtype.Timestamptz{
-				Time:  now,
-				Valid: true,
-			},
+			PostID: postIDUUID,
+			// PostGIS coordinates - ST_MakePoint(longitude, latitude)
+			StMakepoint:   location.Longitude,
+			StMakepoint_2: location.Latitude,
+			Geohash:       &ghash,
 		}
 	}
 
@@ -121,27 +181,26 @@ func ProtoToCreatePinParams(userID string, content string, location *entitiesv1.
 
 // ProtoToCreateCommentParams converts comment request to repository params
 func ProtoToCreateCommentParams(userID, pinID, content string, parentID *string) (*repository.CreatePostParams, error) {
-	commentID := "comment-" + ksuid.New().String()
+	commentID := uuid.New().String()
 	now := time.Now()
 
-	// For comments, the parent_id is the pin or another comment
-	actualParentID := &pinID
-	if parentID != nil && *parentID != "" {
-		actualParentID = parentID
+	// Parse UUID strings
+	var commentIDUUID pgtype.UUID
+	err := commentIDUUID.Scan(commentID)
+	if err != nil {
+		return nil, err
 	}
-
-	metadata := map[string]interface{}{
-		"pin_id": pinID, // Track which pin this comment belongs to
+	var authorIDUUID pgtype.UUID
+	err = authorIDUUID.Scan(userID)
+	if err != nil {
+		return nil, err
 	}
-	metadataJSON, _ := json.Marshal(metadata)
 
 	return &repository.CreatePostParams{
-		ID:       commentID,
-		UserID:   userID,
-		Type:     "comment",
-		Content:  &content,
-		ParentID: actualParentID,
-		Metadata: metadataJSON,
+		ID:           commentIDUUID,
+		AuthorUserID: authorIDUUID,
+		Type:         "comment",
+		Content:      content, // Content is now string directly, not pointer
 		CreatedAt: pgtype.Timestamptz{
 			Time:  now,
 			Valid: true,
@@ -160,15 +219,10 @@ func CommentToProto(post *repository.Post, author *repository.User) *entitiesv1.
 	}
 
 	comment := &entitiesv1.Comment{
-		Id:        post.ID,
-		UserId:    post.UserID,
-		ParentId:  post.ParentID,
+		Id:        post.ID.String(),
+		UserId:    post.AuthorUserID.String(),
 		CreatedAt: post.CreatedAt.Time.Unix(),
-	}
-
-	// Set content if not null
-	if post.Content != nil {
-		comment.Content = *post.Content
+		Content:   post.Content, // Content is now string directly, not pointer
 	}
 
 	// Add author if available

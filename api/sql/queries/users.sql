@@ -1,5 +1,5 @@
 -- name: CreateUser :one
-INSERT INTO users (id, email, username, metadata, created_at, updated_at) 
+INSERT INTO users (id, username, email, display_name, avatar_url, created_at) 
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
@@ -15,10 +15,10 @@ SELECT * FROM users WHERE username = $1;
 -- name: UpdateUser :one
 UPDATE users 
 SET 
-    email = $2,
-    username = $3,
-    metadata = $4,
-    updated_at = $5
+    username = $2,
+    email = $3,
+    display_name = $4,
+    avatar_url = $5
 WHERE id = $1
 RETURNING *;
 

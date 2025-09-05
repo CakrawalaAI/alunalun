@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	
 	"connectrpc.com/connect"
@@ -73,9 +74,9 @@ func (r *Router) ListenAndServe(addr string) error {
 // AuthInterceptor provides authentication middleware for ConnectRPC
 func AuthInterceptor(tokenManager *auth.TokenManager) connect.UnaryInterceptorFunc {
 	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx connect.HandlerContext, req connect.AnyRequest) (connect.AnyResponse, error) {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			// Skip auth for certain endpoints
-			procedure := ctx.Spec().Procedure
+			procedure := req.Spec().Procedure
 			skipAuth := []string{
 				"CheckUsername",
 				"InitAnonymous",
@@ -90,15 +91,15 @@ func AuthInterceptor(tokenManager *auth.TokenManager) connect.UnaryInterceptorFu
 			}
 			
 			// Extract token from Authorization header
-			auth := ctx.RequestHeader().Get("Authorization")
-			if auth == "" {
+			authHeader := req.Header().Get("Authorization")
+			if authHeader == "" {
 				return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 			}
 			
 			// Validate token
-			token := auth
-			if len(auth) > 7 && auth[:7] == "Bearer " {
-				token = auth[7:]
+			token := authHeader
+			if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+				token = authHeader[7:]
 			}
 			
 			claims, err := tokenManager.ValidateToken(token)
@@ -107,7 +108,7 @@ func AuthInterceptor(tokenManager *auth.TokenManager) connect.UnaryInterceptorFu
 			}
 			
 			// Add claims to context
-			ctx = connect.WithRequestContext(ctx, auth.ContextWithClaims(ctx, claims))
+			ctx = auth.ContextWithClaims(ctx, claims)
 			
 			return next(ctx, req)
 		}

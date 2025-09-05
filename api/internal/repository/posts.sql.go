@@ -11,45 +11,44 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countCommentsByPinID = `-- name: CountCommentsByPinID :one
-SELECT COUNT(*) FROM posts
+const countCommentsByParent = `-- name: CountCommentsByParent :one
+SELECT COUNT(*) FROM posts 
 WHERE parent_id = $1 AND type = 'comment'
 `
 
-func (q *Queries) CountCommentsByPinID(ctx context.Context, parentID *string) (int64, error) {
-	row := q.db.QueryRow(ctx, countCommentsByPinID, parentID)
+func (q *Queries) CountCommentsByParent(ctx context.Context, parentID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countCommentsByParent, parentID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const countCommentsByPost = `-- name: CountCommentsByPost :one
-SELECT COUNT(*) FROM posts
-WHERE parent_id = $1
+const countPostsByUser = `-- name: CountPostsByUser :one
+SELECT COUNT(*) FROM posts WHERE user_id = $1
 `
 
-func (q *Queries) CountCommentsByPost(ctx context.Context, parentID *string) (int64, error) {
-	row := q.db.QueryRow(ctx, countCommentsByPost, parentID)
+func (q *Queries) CountPostsByUser(ctx context.Context, userID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countPostsByUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
 const createPost = `-- name: CreatePost :one
-INSERT INTO posts (id, user_id, type, content, parent_id, metadata, created_at, updated_at)
+INSERT INTO posts (id, user_id, type, parent_id, content, visibility, metadata, created_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, user_id, type, content, parent_id, metadata, created_at, updated_at
+RETURNING id, user_id, type, parent_id, content, visibility, metadata, created_at
 `
 
 type CreatePostParams struct {
-	ID        string             `json:"id"`
-	UserID    string             `json:"user_id"`
-	Type      string             `json:"type"`
-	Content   *string            `json:"content"`
-	ParentID  *string            `json:"parent_id"`
-	Metadata  []byte             `json:"metadata"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID         pgtype.UUID        `json:"id"`
+	UserID     pgtype.UUID        `json:"user_id"`
+	Type       string             `json:"type"`
+	ParentID   pgtype.UUID        `json:"parent_id"`
+	Content    string             `json:"content"`
+	Visibility *string            `json:"visibility"`
+	Metadata   []byte             `json:"metadata"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg *CreatePostParams) (*Post, error) {
@@ -57,22 +56,22 @@ func (q *Queries) CreatePost(ctx context.Context, arg *CreatePostParams) (*Post,
 		arg.ID,
 		arg.UserID,
 		arg.Type,
-		arg.Content,
 		arg.ParentID,
+		arg.Content,
+		arg.Visibility,
 		arg.Metadata,
 		arg.CreatedAt,
-		arg.UpdatedAt,
 	)
 	var i Post
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Type,
-		&i.Content,
 		&i.ParentID,
+		&i.Content,
+		&i.Visibility,
 		&i.Metadata,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return &i, err
 }
@@ -81,151 +80,132 @@ const deletePost = `-- name: DeletePost :exec
 DELETE FROM posts WHERE id = $1
 `
 
-func (q *Queries) DeletePost(ctx context.Context, id string) error {
+func (q *Queries) DeletePost(ctx context.Context, id pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, deletePost, id)
 	return err
 }
 
-const getCommentsByPinID = `-- name: GetCommentsByPinID :many
-SELECT id, user_id, type, content, parent_id, metadata, created_at, updated_at FROM posts
-WHERE parent_id = $1 AND type = 'comment'
-ORDER BY created_at ASC
-`
-
-func (q *Queries) GetCommentsByPinID(ctx context.Context, parentID *string) ([]*Post, error) {
-	rows, err := q.db.Query(ctx, getCommentsByPinID, parentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []*Post{}
-	for rows.Next() {
-		var i Post
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserID,
-			&i.Type,
-			&i.Content,
-			&i.ParentID,
-			&i.Metadata,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getPostByID = `-- name: GetPostByID :one
-SELECT id, user_id, type, content, parent_id, metadata, created_at, updated_at FROM posts WHERE id = $1
+SELECT id, user_id, type, parent_id, content, visibility, metadata, created_at FROM posts WHERE id = $1
 `
 
-func (q *Queries) GetPostByID(ctx context.Context, id string) (*Post, error) {
+func (q *Queries) GetPostByID(ctx context.Context, id pgtype.UUID) (*Post, error) {
 	row := q.db.QueryRow(ctx, getPostByID, id)
 	var i Post
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Type,
-		&i.Content,
 		&i.ParentID,
+		&i.Content,
+		&i.Visibility,
 		&i.Metadata,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return &i, err
 }
 
 const getPostWithAuthor = `-- name: GetPostWithAuthor :one
 SELECT 
-    p.id, p.user_id, p.type, p.content, p.parent_id, p.metadata, p.created_at, p.updated_at,
+    p.id, p.user_id, p.type, p.parent_id, p.content, p.visibility, p.metadata, p.created_at,
     u.id as author_id,
     u.username as author_username,
-    u.email as author_email
+    u.display_name as author_display_name,
+    u.avatar_url as author_avatar_url
 FROM posts p
-JOIN users u ON p.user_id = u.id
+LEFT JOIN users u ON p.user_id = u.id
 WHERE p.id = $1
 `
 
 type GetPostWithAuthorRow struct {
-	ID             string             `json:"id"`
-	UserID         string             `json:"user_id"`
-	Type           string             `json:"type"`
-	Content        *string            `json:"content"`
-	ParentID       *string            `json:"parent_id"`
-	Metadata       []byte             `json:"metadata"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	AuthorID       string             `json:"author_id"`
-	AuthorUsername string             `json:"author_username"`
-	AuthorEmail    *string            `json:"author_email"`
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	Type              string             `json:"type"`
+	ParentID          pgtype.UUID        `json:"parent_id"`
+	Content           string             `json:"content"`
+	Visibility        *string            `json:"visibility"`
+	Metadata          []byte             `json:"metadata"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	AuthorID          pgtype.UUID        `json:"author_id"`
+	AuthorUsername    *string            `json:"author_username"`
+	AuthorDisplayName *string            `json:"author_display_name"`
+	AuthorAvatarUrl   *string            `json:"author_avatar_url"`
 }
 
-func (q *Queries) GetPostWithAuthor(ctx context.Context, id string) (*GetPostWithAuthorRow, error) {
+func (q *Queries) GetPostWithAuthor(ctx context.Context, id pgtype.UUID) (*GetPostWithAuthorRow, error) {
 	row := q.db.QueryRow(ctx, getPostWithAuthor, id)
 	var i GetPostWithAuthorRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Type,
-		&i.Content,
 		&i.ParentID,
+		&i.Content,
+		&i.Visibility,
 		&i.Metadata,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 		&i.AuthorID,
 		&i.AuthorUsername,
-		&i.AuthorEmail,
+		&i.AuthorDisplayName,
+		&i.AuthorAvatarUrl,
 	)
 	return &i, err
 }
 
-const listCommentsByPost = `-- name: ListCommentsByPost :many
+const listCommentsByParent = `-- name: ListCommentsByParent :many
 SELECT 
-    p.id, p.user_id, p.type, p.content, p.parent_id, p.metadata, p.created_at, p.updated_at,
-    u.username as author_username
+    p.id, p.user_id, p.type, p.parent_id, p.content, p.visibility, p.metadata, p.created_at,
+    u.username as author_username,
+    u.display_name as author_display_name,
+    u.avatar_url as author_avatar_url
 FROM posts p
-JOIN users u ON p.user_id = u.id
-WHERE p.parent_id = $1
+LEFT JOIN users u ON p.user_id = u.id
+WHERE p.parent_id = $1 AND p.type = 'comment'
 ORDER BY p.created_at ASC
+LIMIT $2 OFFSET $3
 `
 
-type ListCommentsByPostRow struct {
-	ID             string             `json:"id"`
-	UserID         string             `json:"user_id"`
-	Type           string             `json:"type"`
-	Content        *string            `json:"content"`
-	ParentID       *string            `json:"parent_id"`
-	Metadata       []byte             `json:"metadata"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	AuthorUsername string             `json:"author_username"`
+type ListCommentsByParentParams struct {
+	ParentID pgtype.UUID `json:"parent_id"`
+	Limit    int32       `json:"limit"`
+	Offset   int32       `json:"offset"`
 }
 
-func (q *Queries) ListCommentsByPost(ctx context.Context, parentID *string) ([]*ListCommentsByPostRow, error) {
-	rows, err := q.db.Query(ctx, listCommentsByPost, parentID)
+type ListCommentsByParentRow struct {
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	Type              string             `json:"type"`
+	ParentID          pgtype.UUID        `json:"parent_id"`
+	Content           string             `json:"content"`
+	Visibility        *string            `json:"visibility"`
+	Metadata          []byte             `json:"metadata"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	AuthorUsername    *string            `json:"author_username"`
+	AuthorDisplayName *string            `json:"author_display_name"`
+	AuthorAvatarUrl   *string            `json:"author_avatar_url"`
+}
+
+func (q *Queries) ListCommentsByParent(ctx context.Context, arg *ListCommentsByParentParams) ([]*ListCommentsByParentRow, error) {
+	rows, err := q.db.Query(ctx, listCommentsByParent, arg.ParentID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*ListCommentsByPostRow{}
+	items := []*ListCommentsByParentRow{}
 	for rows.Next() {
-		var i ListCommentsByPostRow
+		var i ListCommentsByParentRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.Type,
-			&i.Content,
 			&i.ParentID,
+			&i.Content,
+			&i.Visibility,
 			&i.Metadata,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 			&i.AuthorUsername,
+			&i.AuthorDisplayName,
+			&i.AuthorAvatarUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -238,7 +218,7 @@ func (q *Queries) ListCommentsByPost(ctx context.Context, parentID *string) ([]*
 }
 
 const listPostsByType = `-- name: ListPostsByType :many
-SELECT id, user_id, type, content, parent_id, metadata, created_at, updated_at FROM posts
+SELECT id, user_id, type, parent_id, content, visibility, metadata, created_at FROM posts
 WHERE type = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -263,11 +243,11 @@ func (q *Queries) ListPostsByType(ctx context.Context, arg *ListPostsByTypeParam
 			&i.ID,
 			&i.UserID,
 			&i.Type,
-			&i.Content,
 			&i.ParentID,
+			&i.Content,
+			&i.Visibility,
 			&i.Metadata,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -280,16 +260,16 @@ func (q *Queries) ListPostsByType(ctx context.Context, arg *ListPostsByTypeParam
 }
 
 const listPostsByUser = `-- name: ListPostsByUser :many
-SELECT id, user_id, type, content, parent_id, metadata, created_at, updated_at FROM posts 
+SELECT id, user_id, type, parent_id, content, visibility, metadata, created_at FROM posts 
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
 type ListPostsByUserParams struct {
-	UserID string `json:"user_id"`
-	Limit  int32  `json:"limit"`
-	Offset int32  `json:"offset"`
+	UserID pgtype.UUID `json:"user_id"`
+	Limit  int32       `json:"limit"`
+	Offset int32       `json:"offset"`
 }
 
 func (q *Queries) ListPostsByUser(ctx context.Context, arg *ListPostsByUserParams) ([]*Post, error) {
@@ -305,11 +285,11 @@ func (q *Queries) ListPostsByUser(ctx context.Context, arg *ListPostsByUserParam
 			&i.ID,
 			&i.UserID,
 			&i.Type,
-			&i.Content,
 			&i.ParentID,
+			&i.Content,
+			&i.Visibility,
 			&i.Metadata,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -323,18 +303,14 @@ func (q *Queries) ListPostsByUser(ctx context.Context, arg *ListPostsByUserParam
 
 const listRecentPins = `-- name: ListRecentPins :many
 SELECT 
-    p.id, p.user_id, p.type, p.content, p.parent_id, p.metadata, p.created_at, p.updated_at,
+    p.id, p.user_id, p.type, p.parent_id, p.content, p.visibility, p.metadata, p.created_at,
     u.username as author_username,
-    COALESCE(comment_counts.count, 0) as comment_count
+    u.display_name as author_display_name,
+    u.avatar_url as author_avatar_url
 FROM posts p
-JOIN users u ON p.user_id = u.id
-LEFT JOIN (
-    SELECT parent_id, COUNT(*) as count
-    FROM posts
-    WHERE parent_id IS NOT NULL
-    GROUP BY parent_id
-) comment_counts ON p.id = comment_counts.parent_id
-WHERE p.type = 'pin'
+LEFT JOIN users u ON p.user_id = u.id
+WHERE p.type = 'pin' 
+    AND p.created_at > NOW() - INTERVAL '24 hours'
 ORDER BY p.created_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -345,16 +321,17 @@ type ListRecentPinsParams struct {
 }
 
 type ListRecentPinsRow struct {
-	ID             string             `json:"id"`
-	UserID         string             `json:"user_id"`
-	Type           string             `json:"type"`
-	Content        *string            `json:"content"`
-	ParentID       *string            `json:"parent_id"`
-	Metadata       []byte             `json:"metadata"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	AuthorUsername string             `json:"author_username"`
-	CommentCount   int64              `json:"comment_count"`
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	Type              string             `json:"type"`
+	ParentID          pgtype.UUID        `json:"parent_id"`
+	Content           string             `json:"content"`
+	Visibility        *string            `json:"visibility"`
+	Metadata          []byte             `json:"metadata"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	AuthorUsername    *string            `json:"author_username"`
+	AuthorDisplayName *string            `json:"author_display_name"`
+	AuthorAvatarUrl   *string            `json:"author_avatar_url"`
 }
 
 func (q *Queries) ListRecentPins(ctx context.Context, arg *ListRecentPinsParams) ([]*ListRecentPinsRow, error) {
@@ -370,13 +347,14 @@ func (q *Queries) ListRecentPins(ctx context.Context, arg *ListRecentPinsParams)
 			&i.ID,
 			&i.UserID,
 			&i.Type,
-			&i.Content,
 			&i.ParentID,
+			&i.Content,
+			&i.Visibility,
 			&i.Metadata,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 			&i.AuthorUsername,
-			&i.CommentCount,
+			&i.AuthorDisplayName,
+			&i.AuthorAvatarUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -392,36 +370,36 @@ const updatePost = `-- name: UpdatePost :one
 UPDATE posts
 SET 
     content = $2,
-    metadata = $3,
-    updated_at = $4
+    visibility = $3,
+    metadata = $4
 WHERE id = $1
-RETURNING id, user_id, type, content, parent_id, metadata, created_at, updated_at
+RETURNING id, user_id, type, parent_id, content, visibility, metadata, created_at
 `
 
 type UpdatePostParams struct {
-	ID        string             `json:"id"`
-	Content   *string            `json:"content"`
-	Metadata  []byte             `json:"metadata"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID         pgtype.UUID `json:"id"`
+	Content    string      `json:"content"`
+	Visibility *string     `json:"visibility"`
+	Metadata   []byte      `json:"metadata"`
 }
 
 func (q *Queries) UpdatePost(ctx context.Context, arg *UpdatePostParams) (*Post, error) {
 	row := q.db.QueryRow(ctx, updatePost,
 		arg.ID,
 		arg.Content,
+		arg.Visibility,
 		arg.Metadata,
-		arg.UpdatedAt,
 	)
 	var i Post
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Type,
-		&i.Content,
 		&i.ParentID,
+		&i.Content,
+		&i.Visibility,
 		&i.Metadata,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return &i, err
 }

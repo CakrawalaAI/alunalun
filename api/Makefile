@@ -38,6 +38,8 @@ _create-db:
 _migrate:
 	@echo "📊 Running migrations..."
 	@goose -dir sql/migrations postgres "$(DB_URL)" up
+	@echo "🗃️  Regenerating SQLC code after migrations..."
+	@sqlc generate
 
 .PHONY: _seed
 _seed:
@@ -65,6 +67,8 @@ create-db:
 migrate:
 	@echo "📊 Running database migrations..."
 	@goose -dir sql/migrations postgres "$(DB_URL)" up
+	@echo "🗃️  Regenerating SQLC code after migrations..."
+	@sqlc generate
 
 .PHONY: migrate-down
 migrate-down:

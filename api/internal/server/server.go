@@ -163,11 +163,19 @@ func (s *Server) setupProviders(registry *auth.ProviderRegistry) error {
 		}
 	}
 
+	// Register anonymous provider for testing
+	anonProvider, err := auth.NewAnonymousProvider(s.config.SessionManager, protoconv.NewPostgresUserStore(s.config.Queries))
+	if err != nil {
+		return fmt.Errorf("failed to create anonymous provider: %w", err)
+	}
+	if err := registry.Register(anonProvider); err != nil {
+		return fmt.Errorf("failed to register anonymous provider: %w", err)
+	}
+
 	// Future: Register other providers
 	// - Apple OAuth
 	// - GitHub OAuth
 	// - Email/Password
-	// - Anonymous (when needed)
 
 	return nil
 }
@@ -176,7 +184,7 @@ func (s *Server) setupProviders(registry *auth.ProviderRegistry) error {
 func (s *Server) setupRoutes() error {
 	// Create auth interceptor
 	authInterceptor := middleware.NewAuthInterceptor(s.config.TokenManager)
-	interceptors := connect.WithInterceptors(authInterceptor.WrapUnary)
+	interceptors := connect.WithInterceptors(authInterceptor)
 
 	// Mount OAuth HTTP routes
 	s.oauthHandler.RegisterRoutes(s.mux)

@@ -120,13 +120,12 @@ func (x *CreatePinResponse) GetPin() *entities.Pin {
 
 type ListPinsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Bounding box coordinates
-	North         float64 `protobuf:"fixed64,1,opt,name=north,proto3" json:"north,omitempty"`       // Max latitude
-	South         float64 `protobuf:"fixed64,2,opt,name=south,proto3" json:"south,omitempty"`       // Min latitude
-	East          float64 `protobuf:"fixed64,3,opt,name=east,proto3" json:"east,omitempty"`         // Max longitude
-	West          float64 `protobuf:"fixed64,4,opt,name=west,proto3" json:"west,omitempty"`         // Min longitude
-	Limit         *int32  `protobuf:"varint,5,opt,name=limit,proto3,oneof" json:"limit,omitempty"`  // Max results (default: 50)
-	Cursor        *string `protobuf:"bytes,6,opt,name=cursor,proto3,oneof" json:"cursor,omitempty"` // Pagination cursor
+	// Center point coordinates
+	Latitude      float64 `protobuf:"fixed64,1,opt,name=latitude,proto3" json:"latitude,omitempty"`   // Center latitude
+	Longitude     float64 `protobuf:"fixed64,2,opt,name=longitude,proto3" json:"longitude,omitempty"` // Center longitude
+	Zoom          int32   `protobuf:"varint,3,opt,name=zoom,proto3" json:"zoom,omitempty"`            // Zoom level (determines precision and limit)
+	Limit         *int32  `protobuf:"varint,4,opt,name=limit,proto3,oneof" json:"limit,omitempty"`    // Override default limit
+	Cursor        *string `protobuf:"bytes,5,opt,name=cursor,proto3,oneof" json:"cursor,omitempty"`   // Pagination cursor
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -161,30 +160,23 @@ func (*ListPinsRequest) Descriptor() ([]byte, []int) {
 	return file_v1_service_pin_service_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ListPinsRequest) GetNorth() float64 {
+func (x *ListPinsRequest) GetLatitude() float64 {
 	if x != nil {
-		return x.North
+		return x.Latitude
 	}
 	return 0
 }
 
-func (x *ListPinsRequest) GetSouth() float64 {
+func (x *ListPinsRequest) GetLongitude() float64 {
 	if x != nil {
-		return x.South
+		return x.Longitude
 	}
 	return 0
 }
 
-func (x *ListPinsRequest) GetEast() float64 {
+func (x *ListPinsRequest) GetZoom() int32 {
 	if x != nil {
-		return x.East
-	}
-	return 0
-}
-
-func (x *ListPinsRequest) GetWest() float64 {
-	if x != nil {
-		return x.West
+		return x.Zoom
 	}
 	return 0
 }
@@ -455,6 +447,94 @@ func (x *AddCommentResponse) GetComment() *entities.Comment {
 	return nil
 }
 
+type DeletePinRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PinId         string                 `protobuf:"bytes,1,opt,name=pin_id,json=pinId,proto3" json:"pin_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeletePinRequest) Reset() {
+	*x = DeletePinRequest{}
+	mi := &file_v1_service_pin_service_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePinRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePinRequest) ProtoMessage() {}
+
+func (x *DeletePinRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_service_pin_service_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeletePinRequest.ProtoReflect.Descriptor instead.
+func (*DeletePinRequest) Descriptor() ([]byte, []int) {
+	return file_v1_service_pin_service_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DeletePinRequest) GetPinId() string {
+	if x != nil {
+		return x.PinId
+	}
+	return ""
+}
+
+type DeletePinResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeletePinResponse) Reset() {
+	*x = DeletePinResponse{}
+	mi := &file_v1_service_pin_service_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePinResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePinResponse) ProtoMessage() {}
+
+func (x *DeletePinResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_service_pin_service_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeletePinResponse.ProtoReflect.Descriptor instead.
+func (*DeletePinResponse) Descriptor() ([]byte, []int) {
+	return file_v1_service_pin_service_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DeletePinResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 var File_v1_service_pin_service_proto protoreflect.FileDescriptor
 
 const file_v1_service_pin_service_proto_rawDesc = "" +
@@ -464,14 +544,13 @@ const file_v1_service_pin_service_proto_rawDesc = "" +
 	"\acontent\x18\x01 \x01(\tR\acontent\x125\n" +
 	"\blocation\x18\x02 \x01(\v2\x19.api.v1.entities.LocationR\blocation\";\n" +
 	"\x11CreatePinResponse\x12&\n" +
-	"\x03pin\x18\x01 \x01(\v2\x14.api.v1.entities.PinR\x03pin\"\xb2\x01\n" +
-	"\x0fListPinsRequest\x12\x14\n" +
-	"\x05north\x18\x01 \x01(\x01R\x05north\x12\x14\n" +
-	"\x05south\x18\x02 \x01(\x01R\x05south\x12\x12\n" +
-	"\x04east\x18\x03 \x01(\x01R\x04east\x12\x12\n" +
-	"\x04west\x18\x04 \x01(\x01R\x04west\x12\x19\n" +
-	"\x05limit\x18\x05 \x01(\x05H\x00R\x05limit\x88\x01\x01\x12\x1b\n" +
-	"\x06cursor\x18\x06 \x01(\tH\x01R\x06cursor\x88\x01\x01B\b\n" +
+	"\x03pin\x18\x01 \x01(\v2\x14.api.v1.entities.PinR\x03pin\"\xac\x01\n" +
+	"\x0fListPinsRequest\x12\x1a\n" +
+	"\blatitude\x18\x01 \x01(\x01R\blatitude\x12\x1c\n" +
+	"\tlongitude\x18\x02 \x01(\x01R\tlongitude\x12\x12\n" +
+	"\x04zoom\x18\x03 \x01(\x05R\x04zoom\x12\x19\n" +
+	"\x05limit\x18\x04 \x01(\x05H\x00R\x05limit\x88\x01\x01\x12\x1b\n" +
+	"\x06cursor\x18\x05 \x01(\tH\x01R\x06cursor\x88\x01\x01B\b\n" +
 	"\x06_limitB\t\n" +
 	"\a_cursor\"r\n" +
 	"\x10ListPinsResponse\x12(\n" +
@@ -491,14 +570,19 @@ const file_v1_service_pin_service_proto_rawDesc = "" +
 	"\n" +
 	"_parent_id\"H\n" +
 	"\x12AddCommentResponse\x122\n" +
-	"\acomment\x18\x01 \x01(\v2\x18.api.v1.entities.CommentR\acomment2\xcb\x02\n" +
+	"\acomment\x18\x01 \x01(\v2\x18.api.v1.entities.CommentR\acomment\")\n" +
+	"\x10DeletePinRequest\x12\x15\n" +
+	"\x06pin_id\x18\x01 \x01(\tR\x05pinId\"-\n" +
+	"\x11DeletePinResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\x9d\x03\n" +
 	"\n" +
 	"PinService\x12P\n" +
 	"\tCreatePin\x12 .api.v1.service.CreatePinRequest\x1a!.api.v1.service.CreatePinResponse\x12M\n" +
 	"\bListPins\x12\x1f.api.v1.service.ListPinsRequest\x1a .api.v1.service.ListPinsResponse\x12G\n" +
 	"\x06GetPin\x12\x1d.api.v1.service.GetPinRequest\x1a\x1e.api.v1.service.GetPinResponse\x12S\n" +
 	"\n" +
-	"AddComment\x12!.api.v1.service.AddCommentRequest\x1a\".api.v1.service.AddCommentResponseBMZKgithub.com/radjathaher/alunalun/api/internal/protocgen/v1/service;servicev1b\x06proto3"
+	"AddComment\x12!.api.v1.service.AddCommentRequest\x1a\".api.v1.service.AddCommentResponse\x12P\n" +
+	"\tDeletePin\x12 .api.v1.service.DeletePinRequest\x1a!.api.v1.service.DeletePinResponseBMZKgithub.com/radjathaher/alunalun/api/internal/protocgen/v1/service;servicev1b\x06proto3"
 
 var (
 	file_v1_service_pin_service_proto_rawDescOnce sync.Once
@@ -512,7 +596,7 @@ func file_v1_service_pin_service_proto_rawDescGZIP() []byte {
 	return file_v1_service_pin_service_proto_rawDescData
 }
 
-var file_v1_service_pin_service_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_v1_service_pin_service_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_v1_service_pin_service_proto_goTypes = []any{
 	(*CreatePinRequest)(nil),   // 0: api.v1.service.CreatePinRequest
 	(*CreatePinResponse)(nil),  // 1: api.v1.service.CreatePinResponse
@@ -522,27 +606,31 @@ var file_v1_service_pin_service_proto_goTypes = []any{
 	(*GetPinResponse)(nil),     // 5: api.v1.service.GetPinResponse
 	(*AddCommentRequest)(nil),  // 6: api.v1.service.AddCommentRequest
 	(*AddCommentResponse)(nil), // 7: api.v1.service.AddCommentResponse
-	(*entities.Location)(nil),  // 8: api.v1.entities.Location
-	(*entities.Pin)(nil),       // 9: api.v1.entities.Pin
-	(*entities.Comment)(nil),   // 10: api.v1.entities.Comment
+	(*DeletePinRequest)(nil),   // 8: api.v1.service.DeletePinRequest
+	(*DeletePinResponse)(nil),  // 9: api.v1.service.DeletePinResponse
+	(*entities.Location)(nil),  // 10: api.v1.entities.Location
+	(*entities.Pin)(nil),       // 11: api.v1.entities.Pin
+	(*entities.Comment)(nil),   // 12: api.v1.entities.Comment
 }
 var file_v1_service_pin_service_proto_depIdxs = []int32{
-	8,  // 0: api.v1.service.CreatePinRequest.location:type_name -> api.v1.entities.Location
-	9,  // 1: api.v1.service.CreatePinResponse.pin:type_name -> api.v1.entities.Pin
-	9,  // 2: api.v1.service.ListPinsResponse.pins:type_name -> api.v1.entities.Pin
-	9,  // 3: api.v1.service.GetPinResponse.pin:type_name -> api.v1.entities.Pin
-	10, // 4: api.v1.service.GetPinResponse.comments:type_name -> api.v1.entities.Comment
-	10, // 5: api.v1.service.AddCommentResponse.comment:type_name -> api.v1.entities.Comment
+	10, // 0: api.v1.service.CreatePinRequest.location:type_name -> api.v1.entities.Location
+	11, // 1: api.v1.service.CreatePinResponse.pin:type_name -> api.v1.entities.Pin
+	11, // 2: api.v1.service.ListPinsResponse.pins:type_name -> api.v1.entities.Pin
+	11, // 3: api.v1.service.GetPinResponse.pin:type_name -> api.v1.entities.Pin
+	12, // 4: api.v1.service.GetPinResponse.comments:type_name -> api.v1.entities.Comment
+	12, // 5: api.v1.service.AddCommentResponse.comment:type_name -> api.v1.entities.Comment
 	0,  // 6: api.v1.service.PinService.CreatePin:input_type -> api.v1.service.CreatePinRequest
 	2,  // 7: api.v1.service.PinService.ListPins:input_type -> api.v1.service.ListPinsRequest
 	4,  // 8: api.v1.service.PinService.GetPin:input_type -> api.v1.service.GetPinRequest
 	6,  // 9: api.v1.service.PinService.AddComment:input_type -> api.v1.service.AddCommentRequest
-	1,  // 10: api.v1.service.PinService.CreatePin:output_type -> api.v1.service.CreatePinResponse
-	3,  // 11: api.v1.service.PinService.ListPins:output_type -> api.v1.service.ListPinsResponse
-	5,  // 12: api.v1.service.PinService.GetPin:output_type -> api.v1.service.GetPinResponse
-	7,  // 13: api.v1.service.PinService.AddComment:output_type -> api.v1.service.AddCommentResponse
-	10, // [10:14] is the sub-list for method output_type
-	6,  // [6:10] is the sub-list for method input_type
+	8,  // 10: api.v1.service.PinService.DeletePin:input_type -> api.v1.service.DeletePinRequest
+	1,  // 11: api.v1.service.PinService.CreatePin:output_type -> api.v1.service.CreatePinResponse
+	3,  // 12: api.v1.service.PinService.ListPins:output_type -> api.v1.service.ListPinsResponse
+	5,  // 13: api.v1.service.PinService.GetPin:output_type -> api.v1.service.GetPinResponse
+	7,  // 14: api.v1.service.PinService.AddComment:output_type -> api.v1.service.AddCommentResponse
+	9,  // 15: api.v1.service.PinService.DeletePin:output_type -> api.v1.service.DeletePinResponse
+	11, // [11:16] is the sub-list for method output_type
+	6,  // [6:11] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -562,7 +650,7 @@ func file_v1_service_pin_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_service_pin_service_proto_rawDesc), len(file_v1_service_pin_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

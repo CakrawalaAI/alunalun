@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 	
@@ -18,7 +19,76 @@ import (
 // GoogleProvider implements OAuth authentication for Google
 type GoogleProvider struct {
 	BaseProvider
-	httpClient *http.Client
+	httpClient  *http.Client
+	userInfoURL string
+	tokenInfoURL string
+}
+
+// getOAuthEndpoint returns the appropriate OAuth endpoint based on configuration
+func getOAuthEndpoint(provider string) oauth2.Endpoint {
+	mode := os.Getenv("OAUTH_MODE")
+	
+	switch mode {
+	case "mock":
+		baseURL := os.Getenv("MOCK_OAUTH_BASE_URL")
+		if baseURL == "" {
+			panic("MOCK_OAUTH_BASE_URL required when OAUTH_MODE=mock")
+		}
+		return oauth2.Endpoint{
+			AuthURL:  baseURL + "/" + provider + "/authorize",
+			TokenURL: baseURL + "/" + provider + "/token",
+		}
+	case "real":
+		// Use real provider endpoints
+		switch provider {
+		case "google":
+			return google.Endpoint
+		default:
+			panic("unsupported real OAuth provider: " + provider)
+		}
+	default:
+		panic("OAUTH_MODE must be 'mock' or 'real', got: " + mode)
+	}
+}
+
+// getUserInfoURL returns the appropriate userinfo URL based on configuration
+func getUserInfoURL(provider string) string {
+	mode := os.Getenv("OAUTH_MODE")
+	
+	switch mode {
+	case "mock":
+		baseURL := os.Getenv("MOCK_OAUTH_BASE_URL")
+		return baseURL + "/" + provider + "/userinfo"
+	case "real":
+		switch provider {
+		case "google":
+			return "https://www.googleapis.com/oauth2/v3/userinfo"
+		default:
+			panic("unsupported real OAuth provider: " + provider)
+		}
+	default:
+		panic("OAUTH_MODE must be 'mock' or 'real', got: " + mode)
+	}
+}
+
+// getTokenInfoURL returns the appropriate tokeninfo URL based on configuration
+func getTokenInfoURL(provider string) string {
+	mode := os.Getenv("OAUTH_MODE")
+	
+	switch mode {
+	case "mock":
+		baseURL := os.Getenv("MOCK_OAUTH_BASE_URL")
+		return baseURL + "/" + provider + "/tokeninfo"
+	case "real":
+		switch provider {
+		case "google":
+			return "https://oauth2.googleapis.com/tokeninfo"
+		default:
+			panic("unsupported real OAuth provider: " + provider)
+		}
+	default:
+		panic("OAUTH_MODE must be 'mock' or 'real', got: " + mode)
+	}
 }
 
 // GoogleUserInfo represents the user info returned by Google
@@ -49,7 +119,7 @@ func NewGoogleProvider(clientID, clientSecret, redirectURL string) (*GoogleProvi
 			"https://www.googleapis.com/auth/userinfo.email",
 			"https://www.googleapis.com/auth/userinfo.profile",
 		},
-		Endpoint: google.Endpoint,
+		Endpoint: getOAuthEndpoint("google"),
 	}
 	
 	return &GoogleProvider{
@@ -60,6 +130,8 @@ func NewGoogleProvider(clientID, clientSecret, redirectURL string) (*GoogleProvi
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		userInfoURL:  getUserInfoURL("google"),
+		tokenInfoURL: getTokenInfoURL("google"),
 	}, nil
 }
 
@@ -95,7 +167,7 @@ func (p *GoogleProvider) VerifyIDToken(ctx context.Context, idToken string) (*au
 	// In production, use Google's token verification endpoint or library
 	
 	// For now, we'll use the tokeninfo endpoint (not recommended for production)
-	url := fmt.Sprintf("https://oauth2.googleapis.com/tokeninfo?id_token=%s", idToken)
+	url := fmt.Sprintf("%s?id_token=%s", p.tokenInfoURL, idToken)
 	
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -153,7 +225,7 @@ func (p *GoogleProvider) VerifyIDToken(ctx context.Context, idToken string) (*au
 
 // getUserInfo fetches user information from Google using an access token
 func (p *GoogleProvider) getUserInfo(ctx context.Context, accessToken string) (*auth.UserInfo, error) {
-	url := "https://www.googleapis.com/oauth2/v3/userinfo"
+	url := p.userInfoURL
 	
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {

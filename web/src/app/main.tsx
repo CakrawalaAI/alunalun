@@ -1,9 +1,28 @@
 import { createRouter, RouterProvider } from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { TransportProvider } from "@connectrpc/connect-query";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import reportWebVitals from "./reportWebVitals";
+import { transport } from "@/common/services/connectrpc/transport";
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
+
+// Create QueryClient for TanStack Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: (failureCount, error: any) => {
+        // Don't retry on 4xx errors (client errors)
+        if (error?.status >= 400 && error?.status < 500) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+    },
+  },
+});
 
 // Create a new router instance
 const router = createRouter({
@@ -28,7 +47,11 @@ if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <StrictMode>
-      <RouterProvider router={router} />
+      <QueryClientProvider client={queryClient}>
+        <TransportProvider transport={transport}>
+          <RouterProvider router={router} />
+        </TransportProvider>
+      </QueryClientProvider>
     </StrictMode>,
   );
 }

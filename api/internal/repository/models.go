@@ -5,44 +5,41 @@
 package repository
 
 import (
-	"net/netip"
-
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Post struct {
-	ID        string             `json:"id"`
-	UserID    string             `json:"user_id"`
-	Type      string             `json:"type"`
-	Content   *string            `json:"content"`
-	ParentID  *string            `json:"parent_id"`
-	Metadata  []byte             `json:"metadata"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID         pgtype.UUID        `json:"id"`
+	UserID     pgtype.UUID        `json:"user_id"`
+	Type       string             `json:"type"`
+	ParentID   pgtype.UUID        `json:"parent_id"`
+	Content    string             `json:"content"`
+	Visibility *string            `json:"visibility"`
+	Metadata   []byte             `json:"metadata"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
 type PostsLocation struct {
-	PostID    string             `json:"post_id"`
-	Location  interface{}        `json:"location"`
-	Geohash   *string            `json:"geohash"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	PostID      pgtype.UUID        `json:"post_id"`
+	Coordinates interface{}        `json:"coordinates"`
+	Geohash     string             `json:"geohash"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
 type User struct {
-	ID        string             `json:"id"`
-	Email     *string            `json:"email"`
-	Username  string             `json:"username"`
-	Metadata  []byte             `json:"metadata"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID          pgtype.UUID        `json:"id"`
+	Username    string             `json:"username"`
+	Email       string             `json:"email"`
+	DisplayName *string            `json:"display_name"`
+	AvatarUrl   *string            `json:"avatar_url"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
-type UserEvent struct {
-	ID          string             `json:"id"`
-	UserID      *string            `json:"user_id"`
-	SessionID   string             `json:"session_id"`
-	EventType   string             `json:"event_type"`
-	IpAddress   netip.Addr         `json:"ip_address"`
-	Fingerprint *string            `json:"fingerprint"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+type UserAuthProvider struct {
+	ID               pgtype.UUID        `json:"id"`
+	UserID           pgtype.UUID        `json:"user_id"`
+	Provider         string             `json:"provider"`
+	ProviderUserID   string             `json:"provider_user_id"`
+	ProviderMetadata []byte             `json:"provider_metadata"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 }

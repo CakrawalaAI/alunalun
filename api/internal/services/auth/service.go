@@ -8,7 +8,7 @@ import (
 	"time"
 	
 	"connectrpc.com/connect"
-	"github.com/radjathaher/alunalun/api/internal/protocgen/v1/entities"
+	entitiesv1 "github.com/radjathaher/alunalun/api/internal/protocgen/v1/entities"
 	servicev1 "github.com/radjathaher/alunalun/api/internal/protocgen/v1/auth_service"
 	"github.com/radjathaher/alunalun/api/internal/protocgen/v1/auth_service/auth_servicev1connect"
 	"github.com/radjathaher/alunalun/api/internal/utils/auth"
@@ -125,7 +125,8 @@ func (s *Service) InitAnonymous(
 	
 	// Generate JWT token (no expiry for anonymous)
 	claims := &auth.Claims{
-		SessionID:   userInfo.ID, // Session ID is used as user ID for anonymous
+		UserID:      userInfo.ID, // Use session ID as user ID for anonymous
+		SessionID:   userInfo.ID,
 		Username:    userInfo.Username,
 		Provider:    "anonymous",
 		IsAnonymous: true,
@@ -325,25 +326,19 @@ func (s *Service) findOrCreateUser(ctx context.Context, info *auth.UserInfo) (*a
 }
 
 // userToProto converts internal User to proto User
-func (s *Service) userToProto(user *auth.User) *entities.User {
+func (s *Service) userToProto(user *auth.User) *entitiesv1.User {
 	if user == nil {
 		return nil
 	}
 	
-	protoUser := &entities.User{
-		Id:        user.ID,
-		Email:     user.Email,
-		Username:  user.Username,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		AvatarUrl: user.Picture,
-		Status:    s.statusToProto(user.Status),
+	protoUser := &entitiesv1.User{
+		Id:       user.ID,
+		Email:    &user.Email,
+		Username: user.Username,
+		Metadata: make(map[string]string),
 	}
 	
-	if user.EmailVerifiedAt != nil {
-		protoUser.EmailVerifiedAt = user.EmailVerifiedAt.Unix()
-	}
-	
+	// Set timestamps
 	if user.CreatedAt.Unix() > 0 {
 		protoUser.CreatedAt = user.CreatedAt.Unix()
 	}
@@ -352,22 +347,23 @@ func (s *Service) userToProto(user *auth.User) *entities.User {
 		protoUser.UpdatedAt = user.UpdatedAt.Unix()
 	}
 	
+	// Add additional user info to metadata
+	if user.FirstName != "" {
+		protoUser.Metadata["first_name"] = user.FirstName
+	}
+	if user.LastName != "" {
+		protoUser.Metadata["last_name"] = user.LastName
+	}
+	if user.Picture != "" {
+		protoUser.Metadata["avatar_url"] = user.Picture
+	}
+	if user.Status != "" {
+		protoUser.Metadata["status"] = user.Status
+	}
+	
 	return protoUser
 }
 
-// statusToProto converts status string to proto enum
-func (s *Service) statusToProto(status string) entities.UserStatus {
-	switch status {
-	case "active":
-		return entities.UserStatus_USER_STATUS_ACTIVE
-	case "disabled":
-		return entities.UserStatus_USER_STATUS_DISABLED
-	case "pending":
-		return entities.UserStatus_USER_STATUS_PENDING
-	default:
-		return entities.UserStatus_USER_STATUS_UNSPECIFIED
-	}
-}
 
 // RegisterProviders registers all configured providers with the registry
 func (s *Service) RegisterProviders() error {

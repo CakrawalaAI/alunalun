@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"connectrpc.com/connect"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	entitiesv1 "github.com/radjathaher/alunalun/api/internal/protocgen/v1/entities"
 	servicev1 "github.com/radjathaher/alunalun/api/internal/protocgen/v1/service"
 	"github.com/radjathaher/alunalun/api/internal/protocgen/v1/service/servicev1connect"
@@ -45,8 +47,15 @@ func (s *Service) GetCurrentUser(
 		)
 	}
 
+	// Parse UUID
+	var userID pgtype.UUID
+	err := userID.Scan(claims.UserID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid user ID: %w", err))
+	}
+
 	// Get user from database
-	user, err := s.queries.GetUserByID(ctx, claims.UserID)
+	user, err := s.queries.GetUserByID(ctx, userID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			// User in JWT but not in database - invalid token
@@ -92,7 +101,7 @@ func (s *Service) RegisterUser(
 	}
 
 	// Check if email already exists
-	existingUser, err := s.queries.GetUserByEmail(ctx, &req.Msg.Email)
+	existingUser, err := s.queries.GetUserByEmail(ctx, req.Msg.Email)
 	if err == nil && existingUser != nil {
 		return nil, connect.NewError(
 			connect.CodeAlreadyExists,
@@ -100,8 +109,8 @@ func (s *Service) RegisterUser(
 		)
 	}
 
-	// Check if username is taken
-	existingUser, err = s.queries.GetUserByUsername(ctx, req.Msg.Username)
+	// Check if username is taken (use display_name)
+	existingUser, err = s.queries.GetUserByDisplayName(ctx, &req.Msg.Username)
 	if err == nil && existingUser != nil {
 		return nil, connect.NewError(
 			connect.CodeAlreadyExists,
@@ -135,9 +144,9 @@ func (s *Service) RegisterUser(
 
 	// Generate JWT token for the new user
 	claims := &auth.Claims{
-		UserID:      createdUser.ID,
-		Username:    createdUser.Username,
-		Email:       *createdUser.Email,
+		UserID:      createdUser.ID.String(),
+		Username:    *createdUser.DisplayName,
+		Email:       createdUser.Email,
 		Provider:    "oauth",
 		IsAnonymous: false,
 	}
@@ -165,8 +174,15 @@ func (s *Service) GetUser(
 		)
 	}
 
+	// Parse UUID
+	var userID pgtype.UUID
+	err := userID.Scan(req.Msg.UserId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid user ID: %w", err))
+	}
+
 	// Get user from database
-	user, err := s.queries.GetUserByID(ctx, req.Msg.UserId)
+	user, err := s.queries.GetUserByID(ctx, userID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("user not found"))
@@ -191,7 +207,7 @@ func (s *Service) GetUser(
 }
 
 // extractClaims extracts JWT claims from request headers
-func (s *Service) extractClaims(headers connect.Headers) *auth.Claims {
+func (s *Service) extractClaims(headers http.Header) *auth.Claims {
 	authHeader := headers.Get("Authorization")
 	if authHeader == "" {
 		return nil

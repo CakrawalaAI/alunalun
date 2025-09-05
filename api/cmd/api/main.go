@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/radjathaher/alunalun/api/internal/config"
 	"github.com/radjathaher/alunalun/api/internal/repository"
 	"github.com/radjathaher/alunalun/api/internal/server"
 	"github.com/radjathaher/alunalun/api/internal/utils/auth"
@@ -18,13 +19,10 @@ import (
 
 func main() {
 	// Load configuration
-	config, err := loadConfig()
-	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
-	}
+	cfg := config.Load()
 
 	// Setup database
-	db, err := setupDatabase(config.DatabaseURL)
+	db, err := setupDatabase(cfg.DB.ConnectionURL())
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -35,11 +33,11 @@ func main() {
 
 	// Setup auth components
 	tokenManager, stateManager, sessionManager, err := setupAuth(
-		config.JWTPrivateKey,
-		config.JWTPublicKey,
-		config.JWTIssuer,
-		config.JWTAudience,
-		config.OAuthStateKey,
+		nil, // JWTPrivateKey - will be generated
+		nil, // JWTPublicKey - will be generated
+		cfg.Auth.JWTIssuer,
+		cfg.Auth.JWTAudience,
+		nil, // OAuthStateKey - will be generated
 	)
 	if err != nil {
 		log.Fatalf("Failed to setup auth: %v", err)
@@ -48,9 +46,9 @@ func main() {
 	// Create server config
 	serverConfig := &server.Config{
 		// Server
-		Addr:         config.ServerAddr,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		Addr:         cfg.Server.Host + ":" + cfg.Server.Port,
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
 		IdleTimeout:  120 * time.Second,
 
 		// Database
@@ -61,17 +59,30 @@ func main() {
 		TokenManager:   tokenManager,
 		StateManager:   stateManager,
 		SessionManager: sessionManager,
-		AuthConfig:     config.AuthConfig,
+		AuthConfig:     nil, // Will be updated to match new auth config
 
 		// OAuth Providers
-		GoogleClientID:     config.GoogleClientID,
-		GoogleClientSecret: config.GoogleClientSecret,
-		GoogleRedirectURL:  config.GoogleRedirectURL,
+		GoogleClientID:     cfg.Auth.GoogleClientID,
+		GoogleClientSecret: cfg.Auth.GoogleClientSecret,
+		GoogleRedirectURL:  cfg.Auth.GoogleRedirectURL,
 
 		// Future: Add more dependencies here
 		// S3Client:    s3Client,
 		// RedisClient: redisClient,
 		// QueueClient: queueClient,
+	}
+
+	// Find available port
+	availablePort, err := cfg.Server.FindAvailablePort()
+	if err != nil {
+		log.Fatalf("Failed to find available port: %v", err)
+	}
+
+	// Update server config with available port
+	if availablePort != cfg.Server.Port {
+		log.Printf("Port %s is busy, using port %s instead", cfg.Server.Port, availablePort)
+		cfg.Server.Port = availablePort
+		serverConfig.Addr = cfg.Server.Address()
 	}
 
 	// Create and start server
@@ -82,7 +93,11 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		log.Printf("Starting server on %s", config.ServerAddr)
+		log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+		log.Printf("🚀 Server ready at http://localhost:%s", cfg.Server.Port)
+		log.Printf("📋 Environment: Development")
+		log.Printf("🗄️  Database: Connected (%s@%s:%s/%s)", cfg.DB.User, cfg.DB.Host, cfg.DB.Port, cfg.DB.Name)
+		log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 		if err := srv.Start(); err != nil {
 			log.Fatalf("Server failed to start: %v", err)
 		}
@@ -246,14 +261,35 @@ func setupDatabase(databaseURL string) (*pgxpool.Pool, error) {
 
 // setupAuth creates auth components
 func setupAuth(privateKey, publicKey []byte, issuer, audience string, stateKey []byte) (*auth.TokenManager, *auth.StateManager, *auth.SessionManager, error) {
+	// Generate keys if not provided (for development)
+	if privateKey == nil || publicKey == nil {
+		privKey, pubKey, err := auth.GenerateKeyPair()
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to generate key pair: %w", err)
+		}
+		privateKey = privKey
+		publicKey = pubKey
+		log.Println("Generated JWT key pair for development")
+	}
+
+	// Generate state key if not provided
+	if stateKey == nil {
+		key, err := auth.GenerateEncryptionKey()
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to generate state key: %w", err)
+		}
+		stateKey = key
+		log.Println("Generated OAuth state key for development")
+	}
+
 	// Create token manager
 	tokenManager, err := auth.NewTokenManager(privateKey, publicKey, issuer, audience)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to create token manager: %w", err)
 	}
 
-	// Create state manager
-	stateManager, err := auth.NewStateManager(stateKey)
+	// Create state manager (OAuth state TTL: 10 minutes)
+	stateManager, err := auth.NewStateManager(stateKey, 10*time.Minute)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to create state manager: %w", err)
 	}

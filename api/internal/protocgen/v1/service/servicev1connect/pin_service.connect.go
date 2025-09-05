@@ -41,6 +41,8 @@ const (
 	PinServiceGetPinProcedure = "/api.v1.service.PinService/GetPin"
 	// PinServiceAddCommentProcedure is the fully-qualified name of the PinService's AddComment RPC.
 	PinServiceAddCommentProcedure = "/api.v1.service.PinService/AddComment"
+	// PinServiceDeletePinProcedure is the fully-qualified name of the PinService's DeletePin RPC.
+	PinServiceDeletePinProcedure = "/api.v1.service.PinService/DeletePin"
 )
 
 // PinServiceClient is a client for the api.v1.service.PinService service.
@@ -53,6 +55,8 @@ type PinServiceClient interface {
 	GetPin(context.Context, *connect.Request[service.GetPinRequest]) (*connect.Response[service.GetPinResponse], error)
 	// Add a comment to a pin
 	AddComment(context.Context, *connect.Request[service.AddCommentRequest]) (*connect.Response[service.AddCommentResponse], error)
+	// Delete a pin (owner only)
+	DeletePin(context.Context, *connect.Request[service.DeletePinRequest]) (*connect.Response[service.DeletePinResponse], error)
 }
 
 // NewPinServiceClient constructs a client for the api.v1.service.PinService service. By default, it
@@ -90,6 +94,12 @@ func NewPinServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(pinServiceMethods.ByName("AddComment")),
 			connect.WithClientOptions(opts...),
 		),
+		deletePin: connect.NewClient[service.DeletePinRequest, service.DeletePinResponse](
+			httpClient,
+			baseURL+PinServiceDeletePinProcedure,
+			connect.WithSchema(pinServiceMethods.ByName("DeletePin")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -99,6 +109,7 @@ type pinServiceClient struct {
 	listPins   *connect.Client[service.ListPinsRequest, service.ListPinsResponse]
 	getPin     *connect.Client[service.GetPinRequest, service.GetPinResponse]
 	addComment *connect.Client[service.AddCommentRequest, service.AddCommentResponse]
+	deletePin  *connect.Client[service.DeletePinRequest, service.DeletePinResponse]
 }
 
 // CreatePin calls api.v1.service.PinService.CreatePin.
@@ -121,6 +132,11 @@ func (c *pinServiceClient) AddComment(ctx context.Context, req *connect.Request[
 	return c.addComment.CallUnary(ctx, req)
 }
 
+// DeletePin calls api.v1.service.PinService.DeletePin.
+func (c *pinServiceClient) DeletePin(ctx context.Context, req *connect.Request[service.DeletePinRequest]) (*connect.Response[service.DeletePinResponse], error) {
+	return c.deletePin.CallUnary(ctx, req)
+}
+
 // PinServiceHandler is an implementation of the api.v1.service.PinService service.
 type PinServiceHandler interface {
 	// Create a new pin on the map
@@ -131,6 +147,8 @@ type PinServiceHandler interface {
 	GetPin(context.Context, *connect.Request[service.GetPinRequest]) (*connect.Response[service.GetPinResponse], error)
 	// Add a comment to a pin
 	AddComment(context.Context, *connect.Request[service.AddCommentRequest]) (*connect.Response[service.AddCommentResponse], error)
+	// Delete a pin (owner only)
+	DeletePin(context.Context, *connect.Request[service.DeletePinRequest]) (*connect.Response[service.DeletePinResponse], error)
 }
 
 // NewPinServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -164,6 +182,12 @@ func NewPinServiceHandler(svc PinServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(pinServiceMethods.ByName("AddComment")),
 		connect.WithHandlerOptions(opts...),
 	)
+	pinServiceDeletePinHandler := connect.NewUnaryHandler(
+		PinServiceDeletePinProcedure,
+		svc.DeletePin,
+		connect.WithSchema(pinServiceMethods.ByName("DeletePin")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/api.v1.service.PinService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PinServiceCreatePinProcedure:
@@ -174,6 +198,8 @@ func NewPinServiceHandler(svc PinServiceHandler, opts ...connect.HandlerOption) 
 			pinServiceGetPinHandler.ServeHTTP(w, r)
 		case PinServiceAddCommentProcedure:
 			pinServiceAddCommentHandler.ServeHTTP(w, r)
+		case PinServiceDeletePinProcedure:
+			pinServiceDeletePinHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -197,4 +223,8 @@ func (UnimplementedPinServiceHandler) GetPin(context.Context, *connect.Request[s
 
 func (UnimplementedPinServiceHandler) AddComment(context.Context, *connect.Request[service.AddCommentRequest]) (*connect.Response[service.AddCommentResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.service.PinService.AddComment is not implemented"))
+}
+
+func (UnimplementedPinServiceHandler) DeletePin(context.Context, *connect.Request[service.DeletePinRequest]) (*connect.Response[service.DeletePinResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.service.PinService.DeletePin is not implemented"))
 }

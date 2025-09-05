@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	
+	"github.com/google/uuid"
 )
 
 // AnonymousProvider implements anonymous authentication
@@ -79,9 +81,35 @@ func (p *AnonymousProvider) Authenticate(ctx context.Context, credential string)
 		return nil, fmt.Errorf("failed to create anonymous session: %w", err)
 	}
 	
+	// Generate a proper UUID for anonymous user
+	userID := uuid.New().String()
+	now := time.Now()
+	
+	// Create user record in database for anonymous user
+	if p.userStore != nil {
+		user := &User{
+			ID:        userID,
+			Email:     fmt.Sprintf("anonymous-%s@local.user", userID), // Placeholder email for database constraint
+			Username:  req.Username,
+			CreatedAt: now,
+			UpdatedAt: now,
+			Status:    "active",
+			Metadata: map[string]interface{}{
+				"session_id":   session.ID,
+				"is_anonymous": true,
+				"provider":     "anonymous",
+			},
+		}
+		
+		// Create user in database
+		if err := p.userStore.CreateUser(ctx, user); err != nil {
+			return nil, fmt.Errorf("failed to create anonymous user in database: %w", err)
+		}
+	}
+	
 	// Return session info as UserInfo
 	return &UserInfo{
-		ID:       session.ID,      // Use session ID as user ID for anonymous
+		ID:       userID,          // Use proper UUID as user ID
 		Username: session.Username,
 		Provider: "anonymous",
 		Metadata: map[string]interface{}{

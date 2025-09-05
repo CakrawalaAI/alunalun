@@ -8,7 +8,6 @@ import (
 	"log"
 	"math"
 	"math/rand"
-	"net/netip"
 	"os"
 	"strings"
 	"time"
@@ -16,7 +15,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mmcloughlin/geohash"
-	"github.com/segmentio/ksuid"
 
 	"github.com/radjathaher/alunalun/api/internal/config"
 	"github.com/radjathaher/alunalun/api/internal/repository"
@@ -116,56 +114,67 @@ func seedData(dbURL string) error {
 		if err != nil {
 			return fmt.Errorf("failed to create user %s: %w", user.Username, err)
 		}
-		userIDs[i] = createdUser.ID
+		userIDs[i] = uuidToString(createdUser.ID)
 	}
 	log.Printf("✅ Created %d users", len(users))
+
+	// Create auth providers for users
+	log.Println("🔐 Creating auth providers...")
+	for i, userID := range userIDs {
+		provider := "google"
+		if i%3 == 1 {
+			provider = "github"
+		}
+		
+		providerID := pgtype.UUID{}
+		providerID.Scan(generateUUID())
+		userUUID := pgtype.UUID{}
+		userUUID.Scan(userID)
+		_, err := txQueries.CreateUserAuthProvider(ctx, &repository.CreateUserAuthProviderParams{
+			ID:               providerID,
+			UserID:           userUUID,
+			Provider:         provider,
+			ProviderUserID:   fmt.Sprintf("%s-%s-%d", provider, userID[:8], i),
+			ProviderMetadata: []byte(fmt.Sprintf(`{"source":"dev_seed","provider":"%s"}`, provider)),
+			CreatedAt:        timestamptz(time.Now()),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create auth provider for user %s: %w", userID, err)
+		}
+	}
+	log.Printf("✅ Created auth providers for %d users", len(userIDs))
 
 	// Create posts and locations
 	log.Println("📍 Creating posts with locations...")
 	posts := createPosts(userIDs)
+	pinCount := 0
+	commentCount := 0
 	
 	for _, post := range posts {
 		// Create post
 		createdPost, err := txQueries.CreatePost(ctx, post.CreatePostParams)
 		if err != nil {
-			return fmt.Errorf("failed to create post %s: %w", post.ID, err)
+			return fmt.Errorf("failed to create post: %w", err)
 		}
 
 		// Create location if this is a pin
 		if post.Type == "pin" && post.Location != nil {
 			_, err := txQueries.CreatePostLocation(ctx, &repository.CreatePostLocationParams{
 				PostID:        createdPost.ID,
-				StMakepoint:   post.Location.Lng,
+				StMakepoint:   post.Location.Lng, // longitude first for PostGIS
 				StMakepoint_2: post.Location.Lat,
-				Geohash:       &post.Location.Geohash,
-				CreatedAt:     post.CreatedAt,
+				Geohash:     post.Location.Geohash,
+				CreatedAt:   post.CreatedAt,
 			})
 			if err != nil {
-				return fmt.Errorf("failed to create location for post %s: %w", post.ID, err)
+				return fmt.Errorf("failed to create location for post: %w", err)
 			}
-		}
-
-		// Create user event
-		eventID := ksuid.New().String()
-		eventType := "create_pin"
-		if post.Type == "comment" {
-			eventType = "create_comment"
-		}
-		
-		_, err = txQueries.CreateUserEvent(ctx, &repository.CreateUserEventParams{
-			ID:          eventID,
-			UserID:      &post.UserID,
-			SessionID:   ksuid.New().String(),
-			EventType:   eventType,
-			IpAddress:   mustParseIP("127.0.0.1"),
-			Fingerprint: stringPtr("dev_seed"),
-			CreatedAt:   post.CreatedAt,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create user event for post %s: %w", post.ID, err)
+			pinCount++
+		} else if post.Type == "comment" {
+			commentCount++
 		}
 	}
-	log.Printf("✅ Created %d posts with locations and events", len(posts))
+	log.Printf("✅ Created %d pins and %d comments with locations", pinCount, commentCount)
 
 	// Commit transaction
 	if err := tx.Commit(ctx); err != nil {
@@ -191,43 +200,46 @@ func createUsers() []*repository.CreateUserParams {
 	users := []struct {
 		username string
 		email    string
+		display  string
 	}{
-		{"jakarta_explorer", "explorer@jakarta.dev"},
-		{"monas_wanderer", "wanderer@jakarta.dev"},
-		{"kota_tua_lover", "kotatua@jakarta.dev"},
-		{"ancol_vibes", "ancol@jakarta.dev"},
-		{"thamrin_walker", "thamrin@jakarta.dev"},
-		{"sudirman_jogger", "sudirman@jakarta.dev"},
-		{"kemang_foodie", "kemang@jakarta.dev"},
-		{"menteng_resident", "menteng@jakarta.dev"},
-		{"pondok_indah", "pi@jakarta.dev"},
-		{"senayan_gym", "senayan@jakarta.dev"},
-		{"kelapa_gading", "kg@jakarta.dev"},
-		{"bsd_commuter", "bsd@jakarta.dev"},
-		{"cipete_cafe", "cipete@jakarta.dev"},
-		{"radio_dalam", "radal@jakarta.dev"},
-		{"blok_m_shopper", "blokm@jakarta.dev"},
-		{"fatmawati_local", "fatmawati@jakarta.dev"},
-		{"tebet_native", "tebet@jakarta.dev"},
-		{"kuningan_worker", "kuningan@jakarta.dev"},
-		{"setiabudi_one", "setiabudi@jakarta.dev"},
-		{"gandaria_city", "gandaria@jakarta.dev"},
+		{"jakarta_explorer", "explorer@jakarta.dev", "Jakarta Explorer"},
+		{"monas_wanderer", "wanderer@jakarta.dev", "Monas Wanderer"},
+		{"kota_tua_lover", "kotatua@jakarta.dev", "Kota Tua Lover"},
+		{"ancol_vibes", "ancol@jakarta.dev", "Ancol Vibes"},
+		{"thamrin_walker", "thamrin@jakarta.dev", "Thamrin Walker"},
+		{"sudirman_jogger", "sudirman@jakarta.dev", "Sudirman Jogger"},
+		{"kemang_foodie", "kemang@jakarta.dev", "Kemang Foodie"},
+		{"menteng_resident", "menteng@jakarta.dev", "Menteng Resident"},
+		{"pondok_indah", "pi@jakarta.dev", "Pondok Indah"},
+		{"senayan_gym", "senayan@jakarta.dev", "Senayan Gym"},
+		{"kelapa_gading", "kg@jakarta.dev", "Kelapa Gading"},
+		{"bsd_commuter", "bsd@jakarta.dev", "BSD Commuter"},
+		{"cipete_cafe", "cipete@jakarta.dev", "Cipete Cafe"},
+		{"radio_dalam", "radal@jakarta.dev", "Radio Dalam"},
+		{"blok_m_shopper", "blokm@jakarta.dev", "Blok M Shopper"},
+		{"fatmawati_local", "fatmawati@jakarta.dev", "Fatmawati Local"},
+		{"tebet_native", "tebet@jakarta.dev", "Tebet Native"},
+		{"kuningan_worker", "kuningan@jakarta.dev", "Kuningan Worker"},
+		{"setiabudi_one", "setiabudi@jakarta.dev", "Setiabudi One"},
+		{"gandaria_city", "gandaria@jakarta.dev", "Gandaria City"},
 	}
 
 	result := make([]*repository.CreateUserParams, len(users))
 	now := time.Now()
 	
 	for i, user := range users {
-		id := ksuid.New().String()
+		id := pgtype.UUID{}
+		id.Scan(generateUUID())
 		createdAt := now.Add(-time.Duration(i*2) * time.Hour) // Spread creation times
+		avatarURL := fmt.Sprintf("https://api.dicebear.com/7.x/initials/svg?seed=%s", user.username)
 		
 		result[i] = &repository.CreateUserParams{
-			ID:        id,
-			Email:     &user.email,
-			Username:  user.username,
-			Metadata:  []byte(`{"source":"dev_seed"}`),
-			CreatedAt: timestamptz(createdAt),
-			UpdatedAt: timestamptz(createdAt),
+			ID:          id,
+			Username:    user.username,
+			Email:       user.email,
+			DisplayName: stringPtr(user.display),
+			AvatarUrl:   stringPtr(avatarURL),
+			CreatedAt:   timestamptz(createdAt),
 		}
 	}
 	
@@ -278,7 +290,8 @@ func createPosts(userIDs []string) []PostWithLocation {
 	
 	// Create ~200 posts (180 pins + ~20 comments)
 	for i := 0; i < 180; i++ {
-		userID := userIDs[rand.Intn(len(userIDs))]
+		userID := pgtype.UUID{}
+		userID.Scan(userIDs[rand.Intn(len(userIDs))])
 		content := pinContents[rand.Intn(len(pinContents))]
 		
 		// Random time within the last 30 days
@@ -288,16 +301,19 @@ func createPosts(userIDs []string) []PostWithLocation {
 		// Random location around Monas
 		location := generateLocationAroundMonas()
 		
+		postID := pgtype.UUID{}
+		postID.Scan(generateUUID())
+		
 		post := PostWithLocation{
 			CreatePostParams: &repository.CreatePostParams{
-				ID:        ksuid.New().String(),
-				UserID:    userID,
-				Type:      "pin",
-				Content:   &content,
-				ParentID:  nil,
-				Metadata:  []byte(`{"source":"dev_seed"}`),
-				CreatedAt: timestamptz(createdAt),
-				UpdatedAt: timestamptz(createdAt),
+				ID:         postID,
+				UserID:     userID,
+				Type:       "pin",
+				Content:    content,
+				ParentID:   pgtype.UUID{}, // empty UUID for pins
+				Visibility: stringPtr("public"),
+				Metadata:   []byte(`{"source":"dev_seed"}`),
+				CreatedAt:  timestamptz(createdAt),
 			},
 			Location: &location,
 		}
@@ -312,22 +328,27 @@ func createPosts(userIDs []string) []PostWithLocation {
 		}
 		
 		parentPost := posts[i]
-		userID := userIDs[rand.Intn(len(userIDs))]
+		userID := pgtype.UUID{}
+		userID.Scan(userIDs[rand.Intn(len(userIDs))])
 		content := commentContents[rand.Intn(len(commentContents))]
 		
 		// Comment created after the parent post
 		commentTime := parentPost.CreatedAt.Time.Add(time.Duration(rand.Intn(48)) * time.Hour)
+		parentID := parentPost.ID
+		
+		commentID := pgtype.UUID{}
+		commentID.Scan(generateUUID())
 		
 		comment := PostWithLocation{
 			CreatePostParams: &repository.CreatePostParams{
-				ID:        ksuid.New().String(),
-				UserID:    userID,
-				Type:      "comment",
-				Content:   &content,
-				ParentID:  &parentPost.ID,
-				Metadata:  []byte(`{"source":"dev_seed"}`),
-				CreatedAt: timestamptz(commentTime),
-				UpdatedAt: timestamptz(commentTime),
+				ID:         commentID,
+				UserID:     userID,
+				Type:       "comment",
+				Content:    content,
+				ParentID:   parentID,
+				Visibility: stringPtr("public"),
+				Metadata:   []byte(`{"source":"dev_seed"}`),
+				CreatedAt:  timestamptz(commentTime),
 			},
 			Location: nil, // Comments don't have locations
 		}
@@ -347,8 +368,8 @@ func generateLocationAroundMonas() Location {
 	
 	// Convert to lat/lng offset (rough approximation for Jakarta)
 	// 1 degree lat ≈ 111km, 1 degree lng ≈ 111km * cos(lat)
-	latOffset := (distance * 1000) / 111000 * 57.2958 * math.Cos(angle) // Convert to degrees
-	lngOffset := (distance * 1000) / (111000 * math.Cos(monasLat*0.0174533)) * math.Sin(angle)
+	latOffset := (distance * math.Cos(angle)) / 111.0
+	lngOffset := (distance * math.Sin(angle)) / (111.0 * math.Cos(monasLat*math.Pi/180))
 	
 	lat := monasLat + latOffset
 	lng := monasLng + lngOffset
@@ -369,10 +390,15 @@ func stringPtr(s string) *string {
 	return &s
 }
 
-func mustParseIP(ip string) netip.Addr {
-	addr, err := netip.ParseAddr(ip)
-	if err != nil {
-		panic(fmt.Sprintf("invalid IP address %s: %v", ip, err))
-	}
-	return addr
+func generateUUID() string {
+	// Generate a UUID v4
+	b := make([]byte, 16)
+	rand.Read(b)
+	b[6] = (b[6] & 0x0f) | 0x40 // Version 4
+	b[8] = (b[8] & 0x3f) | 0x80 // Variant 10
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[:4], b[4:6], b[6:8], b[8:10], b[10:])
+}
+
+func uuidToString(u pgtype.UUID) string {
+	return fmt.Sprintf("%x-%x-%x-%x-%x", u.Bytes[0:4], u.Bytes[4:6], u.Bytes[6:8], u.Bytes[8:10], u.Bytes[10:16])
 }

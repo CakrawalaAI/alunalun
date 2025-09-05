@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"time"
@@ -22,6 +24,39 @@ type ServerConfig struct {
 	ShutdownTimeout time.Duration
 }
 
+// FindAvailablePort finds the next available port starting from the configured port
+func (s *ServerConfig) FindAvailablePort() (string, error) {
+	startPort, err := strconv.Atoi(s.Port)
+	if err != nil {
+		return "", fmt.Errorf("invalid port number: %s", s.Port)
+	}
+
+	// Try up to 100 ports
+	for port := startPort; port < startPort+100; port++ {
+		if isPortAvailable(s.Host, port) {
+			return strconv.Itoa(port), nil
+		}
+	}
+
+	return "", fmt.Errorf("no available ports found starting from %d", startPort)
+}
+
+// Address returns the full address (host:port)
+func (s *ServerConfig) Address() string {
+	return s.Host + ":" + s.Port
+}
+
+// isPortAvailable checks if a port is available for binding
+func isPortAvailable(host string, port int) bool {
+	address := fmt.Sprintf("%s:%d", host, port)
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		return false
+	}
+	listener.Close()
+	return true
+}
+
 type DBConfig struct {
 	Host     string
 	Port     string
@@ -31,11 +66,21 @@ type DBConfig struct {
 	SSLMode  string
 }
 
+// ConnectionURL builds a PostgreSQL connection URL from individual config values
+func (db DBConfig) ConnectionURL() string {
+	return "postgresql://" + db.User + ":" + db.Password + "@" + db.Host + ":" + db.Port + "/" + db.Name + "?sslmode=" + db.SSLMode
+}
+
 type AuthConfig struct {
-	JWTSecret     string
-	JWTExpiration time.Duration
-	CookieDomain  string
-	CookieSecure  bool
+	JWTSecret          string
+	JWTExpiration      time.Duration
+	JWTIssuer          string
+	JWTAudience        string
+	CookieDomain       string
+	CookieSecure       bool
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURL  string
 }
 
 type ServicesConfig struct {
@@ -62,10 +107,15 @@ func Load() *Config {
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		Auth: AuthConfig{
-			JWTSecret:     getEnv("JWT_SECRET", "development-secret-change-in-production"),
-			JWTExpiration: getDurationEnv("JWT_EXPIRATION", 24*time.Hour),
-			CookieDomain:  getEnv("COOKIE_DOMAIN", "localhost"),
-			CookieSecure:  getBoolEnv("COOKIE_SECURE", false),
+			JWTSecret:          getEnv("JWT_SECRET", "development-secret-change-in-production"),
+			JWTExpiration:      getDurationEnv("JWT_EXPIRATION", 24*time.Hour),
+			JWTIssuer:          getEnv("JWT_ISSUER", "alunalun"),
+			JWTAudience:        getEnv("JWT_AUDIENCE", "web"),
+			CookieDomain:       getEnv("COOKIE_DOMAIN", "localhost"),
+			CookieSecure:       getBoolEnv("COOKIE_SECURE", false),
+			GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+			GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+			GoogleRedirectURL:  getEnv("GOOGLE_REDIRECT_URL", "http://localhost:8080/auth/oauth/google/callback"),
 		},
 		Services: ServicesConfig{
 			MapboxToken: getEnv("MAPBOX_TOKEN", ""),

@@ -91,3 +91,30 @@ export function getRelativeTime(timestamp?: Timestamp): string {
     return `${years} year${years > 1 ? "s" : ""} ago`;
   }
 }
+
+/**
+ * Format a timestamp to a relative time string
+ * @param timestamp - ISO date string or Date object
+ * @returns Formatted string like "2 hours ago", "3 days ago"
+ */
+export function formatDistanceToNow(timestamp: string | Date): string {
+  const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) {
+    return "just now";
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes !== 1 ? "s" : ""} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
+  } else if (diffDays < 30) {
+    return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+  } else {
+    return date.toLocaleDateString();
+  }
+}

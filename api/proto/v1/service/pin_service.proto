@@ -19,6 +19,9 @@ service PinService {
   
   // Add a comment to a pin
   rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+  
+  // Delete a pin (owner only)
+  rpc DeletePin(DeletePinRequest) returns (DeletePinResponse);
 }
 
 message CreatePinRequest {
@@ -31,14 +34,13 @@ message CreatePinResponse {
 }
 
 message ListPinsRequest {
-  // Bounding box coordinates
-  double north = 1;  // Max latitude
-  double south = 2;  // Min latitude
-  double east = 3;   // Max longitude
-  double west = 4;   // Min longitude
+  // Center point coordinates
+  double latitude = 1;   // Center latitude
+  double longitude = 2;  // Center longitude
+  int32 zoom = 3;        // Zoom level (determines precision and limit)
   
-  optional int32 limit = 5;   // Max results (default: 50)
-  optional string cursor = 6;  // Pagination cursor
+  optional int32 limit = 4;   // Override default limit
+  optional string cursor = 5; // Pagination cursor
 }
 
 message ListPinsResponse {
@@ -63,4 +65,12 @@ message AddCommentRequest {
 
 message AddCommentResponse {
   api.v1.entities.Comment comment = 1;
+}
+
+message DeletePinRequest {
+  string pin_id = 1;
+}
+
+message DeletePinResponse {
+  bool success = 1;
 }

@@ -1,5 +1,5 @@
 -- name: CreatePost :one
-INSERT INTO posts (id, user_id, type, content, parent_id, metadata, created_at, updated_at)
+INSERT INTO posts (id, user_id, type, parent_id, content, visibility, metadata, created_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
@@ -11,9 +11,10 @@ SELECT
     p.*,
     u.id as author_id,
     u.username as author_username,
-    u.email as author_email
+    u.display_name as author_display_name,
+    u.avatar_url as author_avatar_url
 FROM posts p
-JOIN users u ON p.user_id = u.id
+LEFT JOIN users u ON p.user_id = u.id
 WHERE p.id = $1;
 
 -- name: ListPostsByUser :many
@@ -28,25 +29,24 @@ WHERE type = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
--- name: ListCommentsByPost :many
+-- name: ListCommentsByParent :many
 SELECT 
     p.*,
-    u.username as author_username
+    u.username as author_username,
+    u.display_name as author_display_name,
+    u.avatar_url as author_avatar_url
 FROM posts p
-JOIN users u ON p.user_id = u.id
-WHERE p.parent_id = $1
-ORDER BY p.created_at ASC;
-
--- name: CountCommentsByPost :one
-SELECT COUNT(*) FROM posts
-WHERE parent_id = $1;
+LEFT JOIN users u ON p.user_id = u.id
+WHERE p.parent_id = $1 AND p.type = 'comment'
+ORDER BY p.created_at ASC
+LIMIT $2 OFFSET $3;
 
 -- name: UpdatePost :one
 UPDATE posts
 SET 
     content = $2,
-    metadata = $3,
-    updated_at = $4
+    visibility = $3,
+    metadata = $4
 WHERE id = $1
 RETURNING *;
 
@@ -57,24 +57,18 @@ DELETE FROM posts WHERE id = $1;
 SELECT 
     p.*,
     u.username as author_username,
-    COALESCE(comment_counts.count, 0) as comment_count
+    u.display_name as author_display_name,
+    u.avatar_url as author_avatar_url
 FROM posts p
-JOIN users u ON p.user_id = u.id
-LEFT JOIN (
-    SELECT parent_id, COUNT(*) as count
-    FROM posts
-    WHERE parent_id IS NOT NULL
-    GROUP BY parent_id
-) comment_counts ON p.id = comment_counts.parent_id
-WHERE p.type = 'pin'
+LEFT JOIN users u ON p.user_id = u.id
+WHERE p.type = 'pin' 
+    AND p.created_at > NOW() - INTERVAL '24 hours'
 ORDER BY p.created_at DESC
 LIMIT $1 OFFSET $2;
 
--- name: CountCommentsByPinID :one
-SELECT COUNT(*) FROM posts
-WHERE parent_id = $1 AND type = 'comment';
+-- name: CountPostsByUser :one
+SELECT COUNT(*) FROM posts WHERE user_id = $1;
 
--- name: GetCommentsByPinID :many
-SELECT * FROM posts
-WHERE parent_id = $1 AND type = 'comment'
-ORDER BY created_at ASC;
+-- name: CountCommentsByParent :one
+SELECT COUNT(*) FROM posts 
+WHERE parent_id = $1 AND type = 'comment';
